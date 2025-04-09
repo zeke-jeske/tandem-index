@@ -135,7 +135,10 @@ const IndexGenerator = (): React.ReactElement => {
         
         newEntries.forEach(newEntry => {
           // Check if this term already exists
-          const existingIndex = merged.findIndex(e => e.term.toLowerCase() === newEntry.term.toLowerCase());
+          const existingIndex = merged.findIndex(e => {
+            if (!e.term || !newEntry.term) return false;
+            return e.term.toLowerCase() === newEntry.term.toLowerCase();
+          });
           
           if (existingIndex >= 0) {
             // Merge page numbers for existing entry
@@ -303,7 +306,11 @@ const IndexGenerator = (): React.ReactElement => {
       }
       
       // Sort entries alphabetically
-      allEntries.sort((a, b) => a.term.localeCompare(b.term));
+    allEntries.sort((a, b) => {
+        if (!a.term) return 1;  // Move undefined terms to the end
+        if (!b.term) return -1; // Move undefined terms to the end
+        return a.term.localeCompare(b.term);
+    });
       
       // For each entry, sort its subentries
       allEntries.forEach(entry => {

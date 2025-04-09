@@ -1,7 +1,6 @@
 // src/app/api/generate-index/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { getIndexingSystemPrompt, getExampleIndexPrompt, getFullIndexGenerationPrompt } from '@/utils/indexingPrompts';
 
 // Initialize the Anthropic client
 const anthropic = new Anthropic({
@@ -51,13 +50,10 @@ export async function POST(request: NextRequest) {
     
     // Attempting simplified API call
     try {
-      const models = await anthropic.models.list();
-      console.log('Available models:', models);
-
       console.log('Attempting simplified API call...');
       
       const simplifiedResponse = await anthropic.messages.create({
-        model: "claude-3-7-sonnet-20250219",
+        model: "claude-3-5-sonnet-20241022",
         max_tokens: 5000,
         messages: [
           {
@@ -91,24 +87,62 @@ export async function POST(request: NextRequest) {
       
       // Try to extract and parse JSON
       try {
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        let parsedData: any = [];
         let indexEntries: { entries: IndexEntry[] } = { entries: [] };
-        
-        if (jsonMatch) {
-          indexEntries = JSON.parse(jsonMatch[0]);
-          console.log(`Parsed ${indexEntries.entries?.length || 0} index entries`);
-        } else {
-          console.error('No JSON found in response:', responseText);
-          indexEntries = { 
-            entries: [
-              { term: "indexing", pageNumbers: `${startPage}` }
-            ]
-          };
+
+        // Try to extract JSON content
+        if (responseText.includes('```json')) {
+          // Extract content between json code blocks
+          const jsonContent = responseText.split('```json')[1]?.split('```')[0]?.trim();
+          console.log('Extracted JSON content:', jsonContent?.substring(0, 100) + '...');
+
+          if (jsonContent) {
+            try {
+              // Try to parse the JSON content
+              const parsed = JSON.parse(jsonContent);
+              console.log('Successfully parsed JSON:', typeof parsed);
+              
+              // Handle different response formats
+              if (Array.isArray(parsed)) {
+                // Handle array format
+                indexEntries.entries = parsed.map(item => ({
+                  term: item.term,
+                  pageNumbers: item.page ? String(item.page) : 
+                              item.pages ? String(item.pages) : 
+                              `${startPage}-${endPage}`
+                }));
+              } else if (parsed.index_entries) {
+                // Handle {index_entries: [...]} format
+                indexEntries.entries = parsed.index_entries.map((item: any) => ({
+                  term: item.term,
+                  pageNumbers: item.page ? String(item.page) : `${startPage}-${endPage}`
+                }));
+              } else if (parsed.indexEntries) {
+                // Handle {indexEntries: [...]} format
+                indexEntries.entries = parsed.indexEntries.map((item: any) => ({
+                  term: item.term,
+                  pageNumbers: item.page ? String(item.page) : `${startPage}-${endPage}`
+                }));
+              }
+            } catch (parseError) {
+              console.error('JSON parse error:', parseError);
+              // Extract terms using regex as fallback
+              const terms = jsonContent.match(/"term"\s*:\s*"([^"]*)"/g);
+              if (terms) {
+                indexEntries.entries = terms.map(t => {
+                  const term = t.split(':')[1]?.replace(/"/g, '').trim() || 'unknown term';
+                  return { term, pageNumbers: `${startPage}-${endPage}` };
+                });
+              }
+            }
+          }
         }
+        
+        console.log(`Parsed ${indexEntries.entries?.length || 0} index entries`);
         
         return NextResponse.json({
           success: true,
-          entries: indexEntries.entries || []
+          entries: indexEntries.entries
         });
       } catch (parseError) {
         console.error('Failed to parse response:', parseError);
