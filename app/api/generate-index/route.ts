@@ -65,6 +65,9 @@ export async function POST(request: NextRequest) {
     if (exampleIndex) {
       userPrompt = getExampleIndexPrompt(exampleIndex) + "\n\n" + userPrompt;
     }
+
+    // Add explicit error logging
+    console.log('Full user prompt:', userPrompt.substring(0, 1000) + '...'); // Log first 1000 chars
     
     console.log('Making API call to Claude 3 Sonnet...');
     
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
       const response = await anthropic.messages.create({
         model: "claude-3-sonnet-20240229", // Using Sonnet as a balance of quality and cost
         system: systemPrompt,
-        max_tokens: 4000,
+        max_tokens: 10000,
         messages: [
           {
             role: "user",
@@ -175,7 +178,7 @@ export async function POST(request: NextRequest) {
         const backupResponse = await anthropic.messages.create({
           model: "claude-3-haiku-20240307", // Fallback to a simpler model
           system: "You are a book indexing assistant. Create index entries for this book text.",
-          max_tokens: 2000,
+          max_tokens: 10000,
           messages: [
             {
               role: "user",

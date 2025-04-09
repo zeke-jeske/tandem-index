@@ -91,28 +91,36 @@ const IndexGenerator = (): React.ReactElement => {
       });
       
       const fullText = result.value;
-      console.log(`Extracted ${fullText.length} characters of text`);
+      console.log(`Total extracted text length: ${fullText.length} characters`);
+
+      if (fullText.length < 1000) {
+        console.warn('Extracted text seems unusually short. Check document parsing.');
+      }
       
       // Split into manageable chunks
       const paragraphs = fullText.split('\n').filter(p => p.trim().length > 0);
       console.log(`Document contains ${paragraphs.length} paragraphs`);
       
       // For larger documents, use smaller chunk sizes
-      let CHUNK_SIZE = 500; // Default chunk size
-      if (paragraphs.length > 2000) {
-        CHUNK_SIZE = 250;
-      } else if (paragraphs.length > 1000) {
-        CHUNK_SIZE = 350;
+      const IDEAL_CHUNK_SIZE = 10000; // characters, not paragraphs
+        const MAX_CHUNK_SIZE = 15000;
+
+      const chunks: string[] = [];
+      let currentChunk = '';
+      
+      for (const paragraph of paragraphs) {
+        if ((currentChunk + paragraph).length > MAX_CHUNK_SIZE) {
+          chunks.push(currentChunk);
+          currentChunk = paragraph;
+        } else {
+          currentChunk += (currentChunk ? '\n' : '') + paragraph;
+        }
       }
       
-      const chunks = [];
-      
-      for (let i = 0; i < paragraphs.length; i += CHUNK_SIZE) {
-        chunks.push(paragraphs.slice(i, i + CHUNK_SIZE).join('\n'));
-      }
+      if (currentChunk) chunks.push(currentChunk);
       
       const totalChunks = chunks.length;
-      console.log(`Document split into ${totalChunks} chunks (${CHUNK_SIZE} paragraphs per chunk)`);
+      console.log(`Document split into ${totalChunks} chunks`);
       
       setProcessingStatus(prev => ({
         ...prev,
