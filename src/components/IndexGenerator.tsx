@@ -91,6 +91,99 @@ const IndexGenerator = (): React.ReactElement => {
       return;
     }
     
+    // Helper function to merge index entries from different chunks
+    const mergeIndexEntries = (existingEntries: IndexEntry[], newEntries: IndexEntry[]): IndexEntry[] => {
+      const merged = [...existingEntries];
+      
+      newEntries.forEach(newEntry => {
+        // Check if this term already exists
+        const existingIndex = merged.findIndex(e => {
+          if (!e.term || !newEntry.term) return false;
+          return e.term.toLowerCase() === newEntry.term.toLowerCase();
+        });
+        
+        if (existingIndex >= 0) {
+          // Merge page numbers for existing entry
+          const existing = merged[existingIndex];
+          const existingPages = extractPageNumbers(existing.pageNumbers);
+          const newPages = extractPageNumbers(newEntry.pageNumbers);
+          
+          // Combine page numbers and remove duplicates
+          const allPages = [...existingPages, ...newPages]
+            .filter(p => p && (typeof p === 'number' || !p.toString().toLowerCase().includes('see')))
+            .filter(p => typeof p === 'number' ? !isNaN(p) : true)
+            .sort((a, b) => {
+              if (typeof a === 'number' && typeof b === 'number') {
+                return a - b;
+              }
+              return String(a).localeCompare(String(b));
+            });
+          
+          // Convert back to string format
+          const uniquePages = [...new Set(allPages)].map(p => String(p)).join(', ');
+          
+          // Handle any "see" or "see also" references
+          const seeReferences = [...existingPages, ...newPages]
+            .filter(p => typeof p === 'string' && p.toString().toLowerCase().includes('see'))
+            .filter((p, i, arr) => arr.indexOf(p) === i); // Remove duplicates
+          
+          const updatedPages = uniquePages + (seeReferences.length > 0 ? 
+            (uniquePages ? ', ' : '') + seeReferences.join(', ') : '');
+          
+          merged[existingIndex].pageNumbers = updatedPages;
+          
+          // Merge subentries
+          if (newEntry.subentries && newEntry.subentries.length > 0) {
+            if (!existing.subentries) existing.subentries = [];
+            
+            newEntry.subentries.forEach(newSubentry => {
+              const existingSubIndex = existing.subentries!.findIndex(
+                s => s.term.toLowerCase() === newSubentry.term.toLowerCase()
+              );
+              
+              if (existingSubIndex >= 0) {
+                // Merge page numbers for existing subentry
+                const existingSubPages = extractPageNumbers(existing.subentries![existingSubIndex].pageNumbers);
+                const newSubPages = extractPageNumbers(newSubentry.pageNumbers);
+                
+                // Combine page numbers and remove duplicates
+                const allSubPages = [...existingSubPages, ...newSubPages]
+                  .filter(p => p && (typeof p === 'number' || !p.toString().toLowerCase().includes('see')))
+                  .filter(p => typeof p === 'number' ? !isNaN(p) : true)
+                  .sort((a, b) => {
+                    if (typeof a === 'number' && typeof b === 'number') {
+                      return a - b;
+                    }
+                    return String(a).localeCompare(String(b));
+                  });
+                
+                // Convert back to string format
+                const uniqueSubPages = [...new Set(allSubPages)].map(p => String(p)).join(', ');
+                
+                // Handle any "see" or "see also" references
+                const seeSubReferences = [...existingSubPages, ...newSubPages]
+                  .filter(p => typeof p === 'string' && p.toString().toLowerCase().includes('see'))
+                  .filter((p, i, arr) => arr.indexOf(p) === i); // Remove duplicates
+                
+                const updatedSubPages = uniqueSubPages + (seeSubReferences.length > 0 ? 
+                  (uniqueSubPages ? ', ' : '') + seeSubReferences.join(', ') : '');
+                
+                existing.subentries![existingSubIndex].pageNumbers = updatedSubPages;
+              } else {
+                // Add new subentry
+                existing.subentries!.push(newSubentry);
+              }
+            });
+          }
+        } else {
+          // Add new entry
+          merged.push(newEntry);
+        }
+      });
+      
+      return merged;
+    };
+  
     try {
       // Reset abort controller
       if (abortControllerRef.current) {
@@ -118,45 +211,50 @@ const IndexGenerator = (): React.ReactElement => {
       
       const fullText = result.value;
       console.log(`Total extracted text length: ${fullText.length} characters`);
-
+  
       if (fullText.length < 1000) {
         console.warn('Extracted text seems unusually short. Check document parsing.');
+        setProcessingStatus({
+          ...processingStatus,
+          status: 'error',
+          error: 'Extracted text is too short. Please check the document format.'
+        });
+        return;
       }
       
       // Split into manageable chunks
       const paragraphs = fullText.split('\n').filter(p => p.trim().length > 0);
       console.log(`Document contains ${paragraphs.length} paragraphs`);
-
+  
       // Target approximately 20 pages per chunk
       const PAGES_PER_CHUNK = 20; 
       const TARGET_CHUNKS = Math.max(1, Math.ceil(documentPageCount / PAGES_PER_CHUNK));
       console.log(`Targeting ${TARGET_CHUNKS} chunks (${PAGES_PER_CHUNK} pages per chunk)`);
-
+  
       // Calculate approximate characters per page
       const CHARS_PER_PAGE = fullText.length / documentPageCount;
       const TARGET_CHUNK_SIZE = CHARS_PER_PAGE * PAGES_PER_CHUNK;
-      const MAX_CHUNK_SIZE = TARGET_CHUNK_SIZE * 1.5; // Allow some flexibility
-
+      
       console.log(`Estimated ${CHARS_PER_PAGE.toFixed(0)} chars per page, targeting chunks of ~${TARGET_CHUNK_SIZE.toFixed(0)} chars`);
       
-        const chunks: string[] = [];
-        let currentChunk = '';
-
-        for (const paragraph of paragraphs) {
+      const chunks: string[] = [];
+      let currentChunk = '';
+  
+      for (const paragraph of paragraphs) {
         // If adding this paragraph would exceed target size, finalize the chunk
         if ((currentChunk + paragraph).length > TARGET_CHUNK_SIZE && currentChunk.length > 0) {
-            chunks.push(currentChunk);
-            currentChunk = paragraph;
+          chunks.push(currentChunk);
+          currentChunk = paragraph;
         } else {
-            currentChunk += (currentChunk ? '\n' : '') + paragraph;
+          currentChunk += (currentChunk ? '\n' : '') + paragraph;
         }
-        }
-
-        // Add the final chunk if it has content
-        if (currentChunk) chunks.push(currentChunk);
-
-        const totalChunks = chunks.length;
-        console.log(`Document split into ${totalChunks} chunks with sizes: ${chunks.map(c => c.length).join(', ')}`);
+      }
+  
+      // Add the final chunk if it has content
+      if (currentChunk) chunks.push(currentChunk);
+  
+      const totalChunks = chunks.length;
+      console.log(`Document split into ${totalChunks} chunks with sizes: ${chunks.map(c => c.length).join(', ')}`);
       
       setProcessingStatus(prev => ({
         ...prev,
@@ -164,89 +262,38 @@ const IndexGenerator = (): React.ReactElement => {
         status: 'processing',
       }));
       
-      // Process each chunk sequentially
-      const mergeIndexEntries = (existingEntries: IndexEntry[], newEntries: IndexEntry[]): IndexEntry[] => {
-        const merged = [...existingEntries];
-        
-        newEntries.forEach(newEntry => {
-          // Check if this term already exists
-          const existingIndex = merged.findIndex(e => {
-            if (!e.term || !newEntry.term) return false;
-            return e.term.toLowerCase() === newEntry.term.toLowerCase();
+      // Generate document summary for better context
+      let documentSummary = '';
+      if (chunks.length > 0) {
+        try {
+          console.log('Generating document summary...');
+          
+          // Use the first chunk to generate a summary
+          const sampleText = chunks[0].substring(0, 3000);
+          
+          const summaryResponse = await fetch('/api/get-document-summary', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text: sampleText }),
+            signal: abortControllerRef.current.signal
           });
           
-          if (existingIndex >= 0) {
-            // Merge page numbers for existing entry
-            const existing = merged[existingIndex];
-            const existingPages = extractPageNumbers(existing.pageNumbers);
-            const newPages = extractPageNumbers(newEntry.pageNumbers);
-            
-            // Combine page numbers and remove duplicates
-            const allPages = [...existingPages, ...newPages]
-              .filter(p => p && typeof p === 'number' || !p.toString().toLowerCase().includes('see'))
-              .filter(p => !isNaN(Number(p)))
-              .sort((a, b) => Number(a) - Number(b));
-            
-            // Convert back to string format
-            const uniquePages = [...new Set(allPages)].join(', ');
-            
-            // Handle any "see" or "see also" references
-            const seeReferences = [...existingPages, ...newPages]
-              .filter(p => typeof p === 'string' && p.toLowerCase().includes('see'))
-              .filter((p, i, arr) => arr.indexOf(p) === i); // Remove duplicates
-            
-            const updatedPages = uniquePages + (seeReferences.length > 0 ? 
-              (uniquePages ? ', ' : '') + seeReferences.join(', ') : '');
-            
-            merged[existingIndex].pageNumbers = updatedPages;
-            
-            // Merge subentries
-            if (newEntry.subentries && newEntry.subentries.length > 0) {
-              if (!existing.subentries) existing.subentries = [];
-              
-              newEntry.subentries.forEach(newSubentry => {
-                const existingSubIndex = existing.subentries!.findIndex(
-                  s => s.term.toLowerCase() === newSubentry.term.toLowerCase()
-                );
-                
-                if (existingSubIndex >= 0) {
-                  // Merge page numbers for existing subentry
-                  const existingSubPages = extractPageNumbers(existing.subentries![existingSubIndex].pageNumbers);
-                  const newSubPages = extractPageNumbers(newSubentry.pageNumbers);
-                  
-                  // Combine page numbers and remove duplicates
-                  const allSubPages = [...existingSubPages, ...newSubPages]
-                    .filter(p => p && typeof p === 'number' || !p.toString().toLowerCase().includes('see'))
-                    .filter(p => !isNaN(Number(p)))
-                    .sort((a, b) => Number(a) - Number(b));
-                  
-                  // Convert back to string format
-                  const uniqueSubPages = [...new Set(allSubPages)].join(', ');
-                  
-                  // Handle any "see" or "see also" references
-                  const seeSubReferences = [...existingSubPages, ...newSubPages]
-                    .filter(p => typeof p === 'string' && p.toLowerCase().includes('see'))
-                    .filter((p, i, arr) => arr.indexOf(p) === i); // Remove duplicates
-                  
-                  const updatedSubPages = uniqueSubPages + (seeSubReferences.length > 0 ? 
-                    (uniqueSubPages ? ', ' : '') + seeSubReferences.join(', ') : '');
-                  
-                  existing.subentries![existingSubIndex].pageNumbers = updatedSubPages;
-                } else {
-                  // Add new subentry
-                  existing.subentries!.push(newSubentry);
-                }
-              });
-            }
+          if (summaryResponse.ok) {
+            const summaryData = await summaryResponse.json();
+            documentSummary = summaryData.summary;
+            console.log('Generated document summary:', documentSummary);
           } else {
-            // Add new entry
-            merged.push(newEntry);
+            console.warn('Failed to generate document summary. Status:', summaryResponse.status);
           }
-        });
-        
-        return merged;
-      };
-
+        } catch (summaryError) {
+          console.warn('Error generating document summary:', summaryError);
+          // Continue without a summary
+        }
+      }
+      
+      // FIRST PASS: Process each chunk to collect candidate terms
       let allEntries: IndexEntry[] = [];
       
       for (let i = 0; i < chunks.length; i++) {
@@ -257,15 +304,16 @@ const IndexGenerator = (): React.ReactElement => {
         setProcessingStatus(prev => ({
           ...prev,
           currentChunk: i + 1,
-          progress: Math.round(((i + 1) / totalChunks) * 100),
+          progress: Math.round(((i + 0.5) / (totalChunks + 1)) * 100), // Reserve ~half the progress for first pass
         }));
-
-       
-        console.log('Processing chunk...');
         
         console.log(`Processing chunk ${i + 1} of ${totalChunks} (${chunks[i].length} characters)...`);
         
         try {
+          // Calculate the page range for this chunk
+          const startPage = Math.max(1, Math.round(1 + (i * documentPageCount / totalChunks)));
+          const endPage = Math.min(documentPageCount, Math.round((i + 1) * documentPageCount / totalChunks));
+          
           // Send chunk to the API for processing
           const response = await fetch('/api/generate-index', {
             method: 'POST',
@@ -277,8 +325,11 @@ const IndexGenerator = (): React.ReactElement => {
               chunkIndex: i,
               totalChunks,
               totalPages: documentPageCount,
-              previousEntries: allEntries, // Send previous entries for context
-              exampleIndex: showExampleInput ? exampleIndex : '' // Send example index if provided
+              pageRange: { start: startPage, end: endPage },
+              previousEntries: i > 0 ? allEntries.slice(0, 20) : [], // Send a sample of previous entries
+              exampleIndex: showExampleInput ? exampleIndex : '', // Send example index if provided
+              isSecondPass: false, // Explicitly mark as first pass
+              documentSummary: documentSummary // Include summary for context
             }),
             signal: abortControllerRef.current.signal
           });
@@ -321,14 +372,14 @@ const IndexGenerator = (): React.ReactElement => {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      // Final merging and sorting
+      // SECOND PASS: Refine the complete set of entries
       setProcessingStatus(prev => ({
         ...prev,
         status: 'merging',
-        progress: 95,
+        progress: 75, // Start second pass progress at 75%
       }));
-
-      // Skip if no entries were generated
+      
+      // Skip second pass if no entries were generated
       if (allEntries.length === 0) {
         setProcessingStatus(prev => ({
           ...prev,
@@ -338,35 +389,100 @@ const IndexGenerator = (): React.ReactElement => {
         return;
       }
       
-      // Filter out invalid entries before setting final result
-      const filteredEntries = allEntries.filter(entry => 
-        entry && 
-        entry.term && 
-        entry.term.trim() !== '' && 
-        entry.term.toLowerCase() !== 'undefined' &&
-        entry.term.toLowerCase() !== 'unknown term'
-      );
-      
-      // Sort entries alphabetically
-      filteredEntries.sort((a, b) => {
-        if (!a.term) return 1;  // Move undefined terms to the end
-        if (!b.term) return -1; // Move undefined terms to the end
-        return a.term.localeCompare(b.term);
-      });
-      
-      // For each entry, sort its subentries
-      filteredEntries.forEach(entry => {
-        if (entry.subentries && entry.subentries.length > 0) {
-          entry.subentries.sort((a, b) => a.term.localeCompare(b.term));
+      try {
+        console.log(`Starting second pass with ${allEntries.length} raw entries...`);
+        
+        const refinementResponse = await fetch('/api/generate-index', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            isSecondPass: true,
+            allEntries,
+            totalPages: documentPageCount,
+            exampleIndex: showExampleInput ? exampleIndex : '',
+            documentSummary
+          }),
+          signal: abortControllerRef.current.signal
+        });
+        
+        if (!refinementResponse.ok) {
+          const errorData = await refinementResponse.json();
+          console.error('Refinement API error:', errorData);
+          throw new Error(
+            typeof errorData === 'object' && errorData?.error ? 
+            errorData.error : 'Failed to refine index'
+          );
         }
-      });
-      
-      setIndexEntries(filteredEntries);
-      setProcessingStatus(prev => ({
-        ...prev,
-        status: 'complete',
-        progress: 100,
-      }));
+        
+        const refinedData = await refinementResponse.json();
+        
+        if (refinedData.warning) {
+          console.warn('Refinement warning:', refinedData.warning);
+        }
+        
+        if (refinedData.entries && Array.isArray(refinedData.entries)) {
+          console.log(`Received ${refinedData.entries.length} refined entries`);
+          
+          // Use the refined entries
+          setIndexEntries(refinedData.entries);
+          setProcessingStatus(prev => ({
+            ...prev,
+            entriesGenerated: refinedData.entries.length,
+            status: 'complete',
+            progress: 100,
+          }));
+        } else {
+          console.error('Invalid refined entries:', refinedData);
+          throw new Error('Refinement did not return valid entries');
+        }
+      } catch (refinementError) {
+        console.error('Error during refinement phase:', refinementError);
+        
+        // If we have entries from the first pass, use them as a fallback
+        if (allEntries.length > 0) {
+          console.log(`Using ${allEntries.length} entries from first pass due to refinement error`);
+          
+          // Filter, sort, and present the entries from the first pass
+          const filteredEntries = allEntries.filter(entry => 
+            entry && 
+            entry.term && 
+            entry.term.trim() !== '' && 
+            entry.term.toLowerCase() !== 'undefined' &&
+            entry.term.toLowerCase() !== 'unknown term'
+          );
+          
+          // Sort entries alphabetically
+          filteredEntries.sort((a, b) => {
+            if (!a.term) return 1;
+            if (!b.term) return -1;
+            return a.term.localeCompare(b.term);
+          });
+          
+          // For each entry, sort its subentries
+          filteredEntries.forEach(entry => {
+            if (entry.subentries && entry.subentries.length > 0) {
+              entry.subentries.sort((a, b) => a.term.localeCompare(b.term));
+            }
+          });
+          
+          setIndexEntries(filteredEntries);
+          setProcessingStatus(prev => ({
+            ...prev,
+            status: 'complete',
+            progress: 100,
+            error: `Completed with first pass results only. Refinement error: ${refinementError instanceof Error ? refinementError.message : 'An unexpected error occurred'}`
+          }));
+        } else {
+          // If we don't have any entries, show an error
+          setProcessingStatus(prev => ({
+            ...prev,
+            status: 'error',
+            error: refinementError instanceof Error ? refinementError.message : 'An unexpected error occurred during index refinement'
+          }));
+        }
+      }
       
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -380,19 +496,19 @@ const IndexGenerator = (): React.ReactElement => {
         
         // Check if we have any partial results
         if (indexEntries.length > 0) {
-            console.log(`Saving ${indexEntries.length} entries that were generated before the error`);
-            setProcessingStatus(prev => ({
-              ...prev,
-              status: 'complete',
-              progress: 100,
-              error: `Completed with partial results. Error: ${error instanceof Error ? error.message : 'An unexpected error occurred'}`
-            }));
+          console.log(`Saving ${indexEntries.length} entries that were generated before the error`);
+          setProcessingStatus(prev => ({
+            ...prev,
+            status: 'complete',
+            progress: 100,
+            error: `Completed with partial results. Error: ${error instanceof Error ? error.message : 'An unexpected error occurred'}`
+          }));
         } else {
           setProcessingStatus(prev => ({
-              ...prev,
-              status: 'error',
-              error: error instanceof Error ? error.message : 'An unexpected error occurred'
-            }));
+            ...prev,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'An unexpected error occurred'
+          }));
         }
       }
     }
