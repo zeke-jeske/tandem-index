@@ -36,9 +36,9 @@ export async function POST(request: NextRequest) {
   
     // Check if the chunk is too large
     let processedChunk = chunk;
-    if (processedChunk.length > 30000) {
+    if (processedChunk.length > 80000) {  // Increased from 30000
       console.log(`Chunk size (${processedChunk.length} chars) exceeds safe limit. Truncating...`);
-      processedChunk = processedChunk.substring(0, 30000);
+      processedChunk = processedChunk.substring(0, 80000);
     }
   
     // Calculate the approximate page range for this chunk
@@ -48,29 +48,66 @@ export async function POST(request: NextRequest) {
     
     console.log(`Processing chunk ${chunkIndex + 1}/${totalChunks} (pages ~${startPage}-${endPage}) with length ${processedChunk.length}`);
     
-    // Attempting simplified API call
+    // Create a comprehensive system prompt for high-quality indexing
+    const systemPrompt = `You are an expert book indexer for academic books following Chicago Manual of Style guidelines. 
+    Create a professional index for an academic book with these requirements:
+
+    1. Identify key concepts, terms, people, places, and themes that readers would likely look up
+    2. Include specific page numbers, not just page ranges for entire sections
+    3. Create a hierarchical structure with main entries and subentries when appropriate
+    4. Use see/see also cross-references for related terms
+    5. Follow consistent formatting: 
+      - Lowercase terms except for proper nouns
+      - Use commas between terms and page numbers
+      - Use semicolons to separate different aspects of the same term
+      - Sort alphabetically
+
+    You write every index in JSON format according to the specified JSON below. 
+    You do not include any text before or after the JSON index. 
+    Each entry MUST include specific page numbers, not just generic ranges covering the entire chunk.
+    When determining page numbers, estimate based on the included page numbers in the text,
+    the text's position in the full text, and the page range.`;
+
+    // Full prompt instead of simplified
     try {
-      console.log('Attempting simplified API call...');
+      console.log('Making full indexing API call...');
       
-      const simplifiedResponse = await anthropic.messages.create({
+      const fullResponse = await anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
         max_tokens: 5000,
+        system: systemPrompt,
         messages: [
           {
             role: "user",
-            content: "Create 5 basic index entries for this text. Response as JSON:\n\n" + 
-              processedChunk.substring(0, 5000)
+            content: `Create a professional index for this book excerpt. The excerpt spans approximately pages ${startPage} to ${endPage}.
+            Your most important instruction: Your response message will not include any text except the JSON. For proper formatting, return ONLY a JSON object with this exact structure:
+            {
+              "entries": [
+                {
+                  "term": "main entry term",
+                  "pageNumbers": "specific page numbers, not just ranges",
+                  "subentries": [
+                    { 
+                      "term": "subentry term", 
+                      "pageNumbers": "specific page numbers" 
+                    }
+                  ]
+                }
+              ]
+            }
+
+            Here's the text to index:
+            ${processedChunk}`
           }
         ]
       });
       
-      console.log('Response type:', typeof simplifiedResponse);
-      console.log('Response structure:', JSON.stringify(simplifiedResponse, null, 2).substring(0, 500));
+      console.log('Response type:', typeof fullResponse);
       
       // Extract the response content
       let responseText = '';
-      if (Array.isArray(simplifiedResponse.content)) {
-        for (const contentBlock of simplifiedResponse.content) {
+      if (Array.isArray(fullResponse.content)) {
+        for (const contentBlock of fullResponse.content) {
           if (contentBlock.type === 'text') {
             responseText = contentBlock.text;
             break;
@@ -79,16 +116,16 @@ export async function POST(request: NextRequest) {
       }
       
       if (!responseText) {
-        console.error('No text content in Claude response:', simplifiedResponse);
+        console.error('No text content in Claude response:', fullResponse);
         throw new Error('No text content received from Claude API');
       }
       
-      console.log('Extracted text content:', responseText.substring(0, 200));
+      console.log('Extracted text content:', responseText.substring(0, 2000));
       
       // Try to extract and parse JSON
       try {
         let parsedData: any = [];
-        let indexEntries: { entries: IndexEntry[] } = { entries: [] };
+        let indexEntries: { entries: { term: string; pageNumbers: string; subentries?: { term: string; pageNumbers: string; }[] }[] } = { entries: [] };
 
         // Try to extract JSON content
         if (responseText.includes('```json')) {
@@ -105,23 +142,29 @@ export async function POST(request: NextRequest) {
               // Handle different response formats
               if (Array.isArray(parsed)) {
                 // Handle array format
-                indexEntries.entries = parsed.map(item => ({
-                  term: item.term,
+                indexEntries.entries = parsed.map((item: any) => ({
+                  term: item.term || 'unknown term',
                   pageNumbers: item.page ? String(item.page) : 
-                              item.pages ? String(item.pages) : 
-                              `${startPage}-${endPage}`
+                              item.pages ? Array.isArray(item.pages) ? item.pages.join(', ') : String(item.pages) : 
+                              `${startPage}-${endPage}`,
+                  subentries: item.subentries || []
                 }));
+              } else if (parsed.entries) {
+                // Handle {entries: [...]} format (preferred format)
+                indexEntries = parsed;
               } else if (parsed.index_entries) {
                 // Handle {index_entries: [...]} format
                 indexEntries.entries = parsed.index_entries.map((item: any) => ({
-                  term: item.term,
-                  pageNumbers: item.page ? String(item.page) : `${startPage}-${endPage}`
+                  term: item.term || 'unknown term',
+                  pageNumbers: item.page ? String(item.page) : `${startPage}-${endPage}`,
+                  subentries: item.subentries || []
                 }));
               } else if (parsed.indexEntries) {
                 // Handle {indexEntries: [...]} format
                 indexEntries.entries = parsed.indexEntries.map((item: any) => ({
-                  term: item.term,
-                  pageNumbers: item.page ? String(item.page) : `${startPage}-${endPage}`
+                  term: item.term || 'unknown term',
+                  pageNumbers: item.page ? String(item.page) : `${startPage}-${endPage}`,
+                  subentries: item.subentries || []
                 }));
               }
             } catch (parseError) {
@@ -136,7 +179,22 @@ export async function POST(request: NextRequest) {
               }
             }
           }
+        } else {
+          // Try to parse the whole response as JSON
+          try {
+            const parsed = JSON.parse(responseText);
+            if (parsed.entries) {
+              indexEntries = parsed;
+            }
+          } catch (e) {
+            console.log('Response is not JSON');
+          }
         }
+        
+        // Filter out any entries with undefined terms
+        indexEntries.entries = indexEntries.entries.filter(entry => 
+          entry && entry.term && entry.term !== 'undefined' && entry.term !== 'unknown term'
+        );
         
         console.log(`Parsed ${indexEntries.entries?.length || 0} index entries`);
         

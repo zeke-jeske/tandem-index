@@ -55,6 +55,31 @@ const IndexGenerator = (): React.ReactElement => {
     }
   };
   
+  // Helper function to extract page numbers from a string
+  const extractPageNumbers = (pageStr: string): (number | string)[] => {
+    return pageStr.split(/,\s*/).map(part => {
+      // Try to parse as integer
+      const num = parseInt(part.trim(), 10);
+      if (!isNaN(num)) return num;
+      
+      // If it contains a range like "23-25", parse both numbers
+      const rangeMatch = part.match(/(\d+)-(\d+)/);
+      if (rangeMatch) {
+        const start = parseInt(rangeMatch[1], 10);
+        const end = parseInt(rangeMatch[2], 10);
+        if (!isNaN(start) && !isNaN(end)) {
+          // Return all numbers in the range
+          return Array.from(
+            { length: end - start + 1 }, 
+            (_, i) => start + i
+          );
+        }
+      }
+      
+      // Otherwise keep as is (for "see also" references)
+      return part.trim();
+    }).flat();
+  };
   
   const processDocument = async () => {
     if (!file || !documentPageCount || documentPageCount <= 0) {
@@ -102,26 +127,35 @@ const IndexGenerator = (): React.ReactElement => {
       const paragraphs = fullText.split('\n').filter(p => p.trim().length > 0);
       console.log(`Document contains ${paragraphs.length} paragraphs`);
       
-      // For larger documents, use smaller chunk sizes
-      const IDEAL_CHUNK_SIZE = 10000; // characters, not paragraphs
-        const MAX_CHUNK_SIZE = 15000;
+      // Use larger chunk sizes for better indexing context
+      const IDEAL_CHUNK_SIZE = 50000; // characters
+      const MAX_CHUNK_SIZE = 75000;
+      const MIN_CHUNKS = 4; // Ensure at least this many chunks for parallelism
+
+      // First attempt: try to create roughly equal chunks
+      const estimatedChunks = Math.max(MIN_CHUNKS, Math.ceil(fullText.length / IDEAL_CHUNK_SIZE));
+      const targetChunkSize = Math.min(MAX_CHUNK_SIZE, Math.ceil(fullText.length / estimatedChunks));
+
+      console.log(`Targeting ${estimatedChunks} chunks of ~${targetChunkSize} characters each`);
 
       const chunks: string[] = [];
       let currentChunk = '';
-      
+
       for (const paragraph of paragraphs) {
-        if ((currentChunk + paragraph).length > MAX_CHUNK_SIZE) {
+        // If adding this paragraph would exceed max size, finalize the chunk
+        if ((currentChunk + paragraph).length > targetChunkSize && currentChunk.length > 0) {
           chunks.push(currentChunk);
           currentChunk = paragraph;
         } else {
           currentChunk += (currentChunk ? '\n' : '') + paragraph;
         }
       }
-      
+
+      // Add the final chunk if it has content
       if (currentChunk) chunks.push(currentChunk);
-      
+
       const totalChunks = chunks.length;
-      console.log(`Document split into ${totalChunks} chunks`);
+      console.log(`Document split into ${totalChunks} chunks with sizes: ${chunks.map(c => c.length).join(', ')}`);
       
       setProcessingStatus(prev => ({
         ...prev,
@@ -143,22 +177,21 @@ const IndexGenerator = (): React.ReactElement => {
           if (existingIndex >= 0) {
             // Merge page numbers for existing entry
             const existing = merged[existingIndex];
-            const existingPages = existing.pageNumbers.split(', ').map(p => p.trim());
-            const newPages = newEntry.pageNumbers.split(', ').map(p => p.trim());
+            const existingPages = extractPageNumbers(existing.pageNumbers);
+            const newPages = extractPageNumbers(newEntry.pageNumbers);
             
             // Combine page numbers and remove duplicates
             const allPages = [...existingPages, ...newPages]
-              .filter(p => p && !p.toLowerCase().includes('see'))
-              .map(p => parseInt(p, 10))
-              .filter(p => !isNaN(p))
-              .sort((a, b) => a - b);
+              .filter(p => p && typeof p === 'number' || !p.toString().toLowerCase().includes('see'))
+              .filter(p => !isNaN(Number(p)))
+              .sort((a, b) => Number(a) - Number(b));
             
             // Convert back to string format
             const uniquePages = [...new Set(allPages)].join(', ');
             
             // Handle any "see" or "see also" references
             const seeReferences = [...existingPages, ...newPages]
-              .filter(p => p && p.toLowerCase().includes('see'))
+              .filter(p => typeof p === 'string' && p.toLowerCase().includes('see'))
               .filter((p, i, arr) => arr.indexOf(p) === i); // Remove duplicates
             
             const updatedPages = uniquePages + (seeReferences.length > 0 ? 
@@ -177,22 +210,21 @@ const IndexGenerator = (): React.ReactElement => {
                 
                 if (existingSubIndex >= 0) {
                   // Merge page numbers for existing subentry
-                  const existingSubPages = existing.subentries![existingSubIndex].pageNumbers.split(', ').map(p => p.trim());
-                  const newSubPages = newSubentry.pageNumbers.split(', ').map(p => p.trim());
+                  const existingSubPages = extractPageNumbers(existing.subentries![existingSubIndex].pageNumbers);
+                  const newSubPages = extractPageNumbers(newSubentry.pageNumbers);
                   
                   // Combine page numbers and remove duplicates
                   const allSubPages = [...existingSubPages, ...newSubPages]
-                    .filter(p => p && !p.toLowerCase().includes('see'))
-                    .map(p => parseInt(p, 10))
-                    .filter(p => !isNaN(p))
-                    .sort((a, b) => a - b);
+                    .filter(p => p && typeof p === 'number' || !p.toString().toLowerCase().includes('see'))
+                    .filter(p => !isNaN(Number(p)))
+                    .sort((a, b) => Number(a) - Number(b));
                   
                   // Convert back to string format
                   const uniqueSubPages = [...new Set(allSubPages)].join(', ');
                   
                   // Handle any "see" or "see also" references
                   const seeSubReferences = [...existingSubPages, ...newSubPages]
-                    .filter(p => p && p.toLowerCase().includes('see'))
+                    .filter(p => typeof p === 'string' && p.toLowerCase().includes('see'))
                     .filter((p, i, arr) => arr.indexOf(p) === i); // Remove duplicates
                   
                   const updatedSubPages = uniqueSubPages + (seeSubReferences.length > 0 ? 
@@ -305,21 +337,30 @@ const IndexGenerator = (): React.ReactElement => {
         return;
       }
       
+      // Filter out invalid entries before setting final result
+      const filteredEntries = allEntries.filter(entry => 
+        entry && 
+        entry.term && 
+        entry.term.trim() !== '' && 
+        entry.term.toLowerCase() !== 'undefined' &&
+        entry.term.toLowerCase() !== 'unknown term'
+      );
+      
       // Sort entries alphabetically
-    allEntries.sort((a, b) => {
+      filteredEntries.sort((a, b) => {
         if (!a.term) return 1;  // Move undefined terms to the end
         if (!b.term) return -1; // Move undefined terms to the end
         return a.term.localeCompare(b.term);
-    });
+      });
       
       // For each entry, sort its subentries
-      allEntries.forEach(entry => {
+      filteredEntries.forEach(entry => {
         if (entry.subentries && entry.subentries.length > 0) {
           entry.subentries.sort((a, b) => a.term.localeCompare(b.term));
         }
       });
       
-      setIndexEntries(allEntries);
+      setIndexEntries(filteredEntries);
       setProcessingStatus(prev => ({
         ...prev,
         status: 'complete',
@@ -354,87 +395,6 @@ const IndexGenerator = (): React.ReactElement => {
         }
       }
     }
-  };
-  
-  const mergeIndexEntries = (existingEntries: IndexEntry[], newEntries: IndexEntry[]): IndexEntry[] => {
-    const merged = [...existingEntries];
-    
-    newEntries.forEach(newEntry => {
-      // Check if this term already exists
-      const existingIndex = merged.findIndex(e => e.term.toLowerCase() === newEntry.term.toLowerCase());
-      
-      if (existingIndex >= 0) {
-        // Merge page numbers for existing entry
-        const existing = merged[existingIndex];
-        const existingPages = existing.pageNumbers.split(', ').map(p => p.trim());
-        const newPages = newEntry.pageNumbers.split(', ').map(p => p.trim());
-        
-        // Combine page numbers and remove duplicates
-        const allPages = [...existingPages, ...newPages]
-          .filter(p => p && !p.toLowerCase().includes('see'))
-          .map(p => parseInt(p, 10))
-          .filter(p => !isNaN(p))
-          .sort((a, b) => a - b);
-        
-        // Convert back to string format
-        const uniquePages = [...new Set(allPages)].join(', ');
-        
-        // Handle any "see" or "see also" references
-        const seeReferences = [...existingPages, ...newPages]
-          .filter(p => p && p.toLowerCase().includes('see'))
-          .filter((p, i, arr) => arr.indexOf(p) === i); // Remove duplicates
-        
-        const updatedPages = uniquePages + (seeReferences.length > 0 ? 
-          (uniquePages ? ', ' : '') + seeReferences.join(', ') : '');
-        
-        merged[existingIndex].pageNumbers = updatedPages;
-        
-        // Merge subentries
-        if (newEntry.subentries && newEntry.subentries.length > 0) {
-          if (!existing.subentries) existing.subentries = [];
-          
-          newEntry.subentries.forEach(newSubentry => {
-            const existingSubIndex = existing.subentries!.findIndex(
-              s => s.term.toLowerCase() === newSubentry.term.toLowerCase()
-            );
-            
-            if (existingSubIndex >= 0) {
-              // Merge page numbers for existing subentry
-              const existingSubPages = existing.subentries![existingSubIndex].pageNumbers.split(', ').map(p => p.trim());
-              const newSubPages = newSubentry.pageNumbers.split(', ').map(p => p.trim());
-              
-              // Combine page numbers and remove duplicates
-              const allSubPages = [...existingSubPages, ...newSubPages]
-                .filter(p => p && !p.toLowerCase().includes('see'))
-                .map(p => parseInt(p, 10))
-                .filter(p => !isNaN(p))
-                .sort((a, b) => a - b);
-              
-              // Convert back to string format
-              const uniqueSubPages = [...new Set(allSubPages)].join(', ');
-              
-              // Handle any "see" or "see also" references
-              const seeSubReferences = [...existingSubPages, ...newSubPages]
-                .filter(p => p && p.toLowerCase().includes('see'))
-                .filter((p, i, arr) => arr.indexOf(p) === i); // Remove duplicates
-              
-              const updatedSubPages = uniqueSubPages + (seeSubReferences.length > 0 ? 
-                (uniqueSubPages ? ', ' : '') + seeSubReferences.join(', ') : '');
-              
-              existing.subentries![existingSubIndex].pageNumbers = updatedSubPages;
-            } else {
-              // Add new subentry
-              existing.subentries!.push(newSubentry);
-            }
-          });
-        }
-      } else {
-        // Add new entry
-        merged.push(newEntry);
-      }
-    });
-    
-    return merged;
   };
   
   const cancelProcessing = () => {
@@ -480,6 +440,7 @@ const IndexGenerator = (): React.ReactElement => {
     ));
   };
   
+  {/* Rest of the component remains the same */}
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-3xl">
