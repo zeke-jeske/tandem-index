@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
+import Anthropic from '@anthropic-ai/sdk';
 import mammoth from 'mammoth';
 
 interface IndexEntry {
@@ -222,6 +223,9 @@ const IndexGenerator = (): React.ReactElement => {
           currentChunk: i + 1,
           progress: Math.round(((i + 1) / totalChunks) * 100),
         }));
+
+       
+        console.log('Processing chunk...');
         
         console.log(`Processing chunk ${i + 1} of ${totalChunks} (${chunks[i].length} characters)...`);
         
@@ -246,7 +250,8 @@ const IndexGenerator = (): React.ReactElement => {
           if (!response.ok) {
             const errorData = await response.json();
             console.error('API error response:', errorData);
-            throw new Error(errorData.error || 'Failed to process chunk');
+            throw new Error(typeof errorData === 'object' && errorData?.error ? 
+                errorData.error : 'Failed to process chunk');
           }
           
           const data = await response.json();
