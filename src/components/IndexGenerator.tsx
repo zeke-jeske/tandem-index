@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import mammoth from 'mammoth';
 
 interface IndexEntry {
@@ -20,7 +20,7 @@ interface ProcessingStatus {
   progress: number;
 }
 
-const IndexGenerator = () => {
+const IndexGenerator = (): React.ReactElement => {
   const [file, setFile] = useState<File | null>(null);
   const [documentPageCount, setDocumentPageCount] = useState<number>(0);
   const [indexEntries, setIndexEntries] = useState<IndexEntry[]>([]);
@@ -325,12 +325,13 @@ const IndexGenerator = () => {
               progress: 100,
               error: `Completed with partial results. Error: ${error instanceof Error ? error.message : 'An unexpected error occurred'}`
             }));
-      } else {
-        setProcessingStatus(prev => ({
-            ...prev,
-            status: 'error',
-            error: error instanceof Error ? error.message : 'An unexpected error occurred'
-          }));
+        } else {
+          setProcessingStatus(prev => ({
+              ...prev,
+              status: 'error',
+              error: error instanceof Error ? error.message : 'An unexpected error occurred'
+            }));
+        }
       }
     }
   };
@@ -635,5 +636,5 @@ const IndexGenerator = () => {
     </div>
   );
 };
-}
+
 export default IndexGenerator;
