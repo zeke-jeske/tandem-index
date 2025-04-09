@@ -126,36 +126,37 @@ const IndexGenerator = (): React.ReactElement => {
       // Split into manageable chunks
       const paragraphs = fullText.split('\n').filter(p => p.trim().length > 0);
       console.log(`Document contains ${paragraphs.length} paragraphs`);
+
+      // Target approximately 20 pages per chunk
+      const PAGES_PER_CHUNK = 20; 
+      const TARGET_CHUNKS = Math.max(1, Math.ceil(documentPageCount / PAGES_PER_CHUNK));
+      console.log(`Targeting ${TARGET_CHUNKS} chunks (${PAGES_PER_CHUNK} pages per chunk)`);
+
+      // Calculate approximate characters per page
+      const CHARS_PER_PAGE = fullText.length / documentPageCount;
+      const TARGET_CHUNK_SIZE = CHARS_PER_PAGE * PAGES_PER_CHUNK;
+      const MAX_CHUNK_SIZE = TARGET_CHUNK_SIZE * 1.5; // Allow some flexibility
+
+      console.log(`Estimated ${CHARS_PER_PAGE.toFixed(0)} chars per page, targeting chunks of ~${TARGET_CHUNK_SIZE.toFixed(0)} chars`);
       
-      // Use larger chunk sizes for better indexing context
-      const IDEAL_CHUNK_SIZE = 50000; // characters
-      const MAX_CHUNK_SIZE = 75000;
-      const MIN_CHUNKS = 4; // Ensure at least this many chunks for parallelism
+        const chunks: string[] = [];
+        let currentChunk = '';
 
-      // First attempt: try to create roughly equal chunks
-      const estimatedChunks = Math.max(MIN_CHUNKS, Math.ceil(fullText.length / IDEAL_CHUNK_SIZE));
-      const targetChunkSize = Math.min(MAX_CHUNK_SIZE, Math.ceil(fullText.length / estimatedChunks));
-
-      console.log(`Targeting ${estimatedChunks} chunks of ~${targetChunkSize} characters each`);
-
-      const chunks: string[] = [];
-      let currentChunk = '';
-
-      for (const paragraph of paragraphs) {
-        // If adding this paragraph would exceed max size, finalize the chunk
-        if ((currentChunk + paragraph).length > targetChunkSize && currentChunk.length > 0) {
-          chunks.push(currentChunk);
-          currentChunk = paragraph;
+        for (const paragraph of paragraphs) {
+        // If adding this paragraph would exceed target size, finalize the chunk
+        if ((currentChunk + paragraph).length > TARGET_CHUNK_SIZE && currentChunk.length > 0) {
+            chunks.push(currentChunk);
+            currentChunk = paragraph;
         } else {
-          currentChunk += (currentChunk ? '\n' : '') + paragraph;
+            currentChunk += (currentChunk ? '\n' : '') + paragraph;
         }
-      }
+        }
 
-      // Add the final chunk if it has content
-      if (currentChunk) chunks.push(currentChunk);
+        // Add the final chunk if it has content
+        if (currentChunk) chunks.push(currentChunk);
 
-      const totalChunks = chunks.length;
-      console.log(`Document split into ${totalChunks} chunks with sizes: ${chunks.map(c => c.length).join(', ')}`);
+        const totalChunks = chunks.length;
+        console.log(`Document split into ${totalChunks} chunks with sizes: ${chunks.map(c => c.length).join(', ')}`);
       
       setProcessingStatus(prev => ({
         ...prev,

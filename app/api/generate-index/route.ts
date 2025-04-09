@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   
     // Check if the chunk is too large
     let processedChunk = chunk;
-    if (processedChunk.length > 80000) {  // Increased from 30000
+    if (processedChunk.length > 80000) {  
       console.log(`Chunk size (${processedChunk.length} chars) exceeds safe limit. Truncating...`);
       processedChunk = processedChunk.substring(0, 80000);
     }
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     
     // Create a comprehensive system prompt for high-quality indexing
     const systemPrompt = `You are an expert book indexer for academic books following Chicago Manual of Style guidelines. 
-    Create a professional index for an academic book with these requirements:
+    You create professional indexes for chapters of academic books with these requirements:
 
     1. Identify key concepts, terms, people, places, and themes that readers would likely look up
     2. Include specific page numbers, not just page ranges for entire sections
