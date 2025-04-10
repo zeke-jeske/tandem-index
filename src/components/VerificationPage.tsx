@@ -23,13 +23,25 @@ const VerificationPage = () => {
   const [verificationComplete, setVerificationComplete] = useState(false);
   const [fullText, setFullText] = useState('');
   const [documentPageCount, setDocumentPageCount] = useState<number>(0);
+  const [showUploadSuccess, setShowUploadSuccess] = useState(false); // for upload success message
+
+  const steps = [
+    { name: 'Upload', description: 'Upload your document' },
+    { name: 'Verify', description: 'Verify page numbers' },
+    { name: 'Generate', description: 'Create your index' }
+  ];
+  
+  const [currentStep, setCurrentStep] = useState(0);
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       if (selectedFile.name.endsWith('.docx')) {
-        setFile(selectedFile);
-        setError('');
+          setFile(selectedFile);
+          setError('');
+          setShowUploadSuccess(true);
+          setCurrentStep(1);
+          setTimeout(() => setShowUploadSuccess(false), 2000);
       } else {
         setFile(null);
         setError('Please select a .docx file');
@@ -67,7 +79,7 @@ const VerificationPage = () => {
         predictedPageNumber: undefined,
         confidence: undefined
       })));
-      
+
       setIsProcessing(false);
     } catch (error) {
       console.error('Error processing document:', error);
@@ -125,11 +137,12 @@ const handleVerify = async () => {
       // Update results with Claude's predictions
       setResults(data.results);
       setVerificationComplete(true);
+      setCurrentStep(2);
       setIsVerifying(false);
       
     } catch (error: unknown) {
       const err = error as Error;
-      console.error('Error verifying with Claude:', err);
+      console.error('Error verifying with Tandem:', err);
       setError(`Failed to verify passages: ${err.message}`);
       setIsVerifying(false);
     }
@@ -142,12 +155,54 @@ const handleVerify = async () => {
   };
   
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">Document Verification</h1>
-          <p className="text-gray-600 mt-2">
-            Upload a sample chapter to verify Claude's understanding of your document
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+      <div className="mb-8 w-full">
+        {/* Step Indicators */}
+        <div className="flex justify-between max-w-xl mx-auto mb-2">
+          {steps.map((step, index) => (
+            <div key={`indicator-${index}`} className="w-1/3 flex items-center">
+              {index > 0 && (
+                <div className={`h-0.5 flex-grow ${index <= currentStep ? 'bg-mint' : 'bg-gray-200'}`} />
+              )}
+              <div 
+                className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${
+                  index < currentStep 
+                    ? 'bg-mint' 
+                    : index === currentStep 
+                      ? 'border-2 border-mint bg-white' 
+                      : 'border-2 border-gray-200 bg-white'
+                }`}
+              >
+                <span className={`${index < currentStep ? 'text-white' : index === currentStep ? 'text-mint' : 'text-gray-500'}`}>
+                  {index + 1}
+                </span>
+              </div>
+              {index < steps.length - 1 && (
+                <div className={`h-0.5 flex-grow ${index < currentStep ? 'bg-mint' : 'bg-gray-200'}`} />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Step Texts - separate but with matching widths */}
+        <div className="flex justify-between max-w-3xl mx-auto mb-2">
+          {steps.map((step, index) => (
+            <div key={`text-${index}`} className="w-1/3 text-center">
+              <div className={`text-sm font-medium ${index <= currentStep ? 'text-mint' : 'text-gray-500'}`}>
+                {step.name}
+              </div>
+              <div className="text-xs text-gray-500">
+                {step.description}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="w-full text-center max-w-5xl">
+        <div className="text-center mb-8 fade-in">
+        <h1 className="verification-title mb-4 leading-snug font-serif text-gray-800">Verify that Tandem can understand your book.</h1>          
+        <p className="text-gray-600 font-sans fade-in-delay-1">
+            Upload a sample chapter to verify Tandem's understanding of your page numbers and chapters.
           </p>
         </div>
         
@@ -182,32 +237,65 @@ const handleVerify = async () => {
               </label>
               {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
             </div>
-            
-            <button
-              onClick={handleProcessDocument}
-              disabled={!file || isProcessing}
-              className={`w-full py-3 px-4 rounded-lg text-white font-medium ${
-                !file || isProcessing ? 'bg-indigo-300' : 'bg-indigo-600 hover:bg-indigo-700'
-              } transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
-            >
-              {isProcessing ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <div className="flex justify-center gap-4"> {/* Buttons */}
+              {file && (
+                <button
+                  onClick={() => setFile(null)}
+                  className="py-3 px-4 inline-flex items-center border border-gray-300 shadow-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-mint"
+                >
+                  <svg className="mr-1.5 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  Processing...
-                </span>
-              ) : (
-                'Process Document'
+                  Cancel
+                </button>
               )}
-            </button>
+              <button
+                onClick={handleProcessDocument}
+                disabled={!file || isProcessing}
+                className={`py-3 px-4 rounded-lg text-white font-medium ${
+                  !file || isProcessing ? 'bg-lightRed' : 'bg-darkRed hover:bg-darkRed'
+                } transition-colors focus:outline-none focus:ring-2 focus:ring-darkRed focus:ring-offset-2`}
+              >
+                {isProcessing ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  'Process Chapter'
+                )}
+              </button>
+            </div>
+
+          {/* Show upload success message */}
+            {showUploadSuccess && (
+            <div className="fixed inset-0 flex items-center justify-center z-50">
+              <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-lg">
+                <div className="flex flex-col items-center">
+                  <div className="w-24 h-24 mb-4 relative">
+                    <svg className="animate-book-open" viewBox="0 0 100 100">
+                      {/* Simple book icon that opens */}
+                      <rect x="20" y="20" width="60" height="10" rx="2" fill="#5EA89B" className="animate-pulse" />
+                      <path d="M20,30 L20,80 Q20,85 25,85 L50,85 L50,30 Z" fill="#B54646" />
+                      <path d="M80,30 L80,80 Q80,85 75,85 L50,85 L50,30 Z" fill="#5EA89B" />
+                    </svg>
+                  </div>
+                  <p className="text-darkRed font-medium text-xl">File Uploaded!</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           </div>
+
         ) : !verificationComplete ? (
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Selected Passages</h2>
             <p className="text-gray-600 mb-4">
-              We've selected 3 random passages from your document. Click "Verify with Claude" to test if our AI can identify their page numbers.
+              We've selected 3 random passages from your document. Click "Verify with Tandem" to test if our AI can identify their page numbers.
             </p>
 
             {/* Page count input */}
@@ -223,7 +311,7 @@ const handleVerify = async () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Enter page count"
                 />
-                {!documentPageCount && <p className="text-gray-500 text-sm mt-1">This helps Claude accurately identify page numbers</p>}
+                {!documentPageCount && <p className="text-gray-500 text-sm mt-1">This helps Tandem accurately identify page numbers</p>}
             </div>
             
             <div className="space-y-4 mb-6">
@@ -239,8 +327,8 @@ const handleVerify = async () => {
               onClick={handleVerify}
               disabled={isVerifying || !documentPageCount}
               className={`w-full py-3 px-4 rounded-lg text-white font-medium ${
-                isVerifying || !documentPageCount ? 'bg-indigo-300' : 'bg-indigo-600 hover:bg-indigo-700'
-              } transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
+                isVerifying || !documentPageCount ? 'bg-lightRed' : 'bg-darkRed hover:bg-darkRed'
+              } transition-colors focus:outline-none focus:ring-2 focus:ring-darkRed focus:ring-offset-2`}
             >
               {isVerifying ? (
                 <span className="flex items-center justify-center">
@@ -248,10 +336,10 @@ const handleVerify = async () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Verifying with Claude...
+                  Verifying with Tandem...
                 </span>
               ) : (
-                'Verify with Claude'
+                'Verify with Tandem'
               )}
             </button>
           </div>
@@ -298,7 +386,7 @@ const handleVerify = async () => {
                 <>
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                     <p className="text-green-800 font-medium">Verification successful!</p>
-                    <p className="text-green-600 mt-1">Claude can confidently identify page locations in your document.</p>
+                    <p className="text-green-600 mt-1">Tandem can confidently identify page locations in your document.</p>
                   </div>
                   
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
@@ -325,7 +413,7 @@ const handleVerify = async () => {
                 <>
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                     <p className="text-yellow-800 font-medium">Uncertain verification</p>
-                    <p className="text-yellow-600 mt-1">Claude has low confidence in some page numbers. This may affect the quality of your index.</p>
+                    <p className="text-yellow-600 mt-1">Tandem has low confidence in some page numbers. This may affect the quality of your index.</p>
                   </div>
                   <button
                     onClick={() => window.location.reload()}

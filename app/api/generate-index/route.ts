@@ -17,18 +17,25 @@ interface IndexEntry {
 }
 
 export async function POST(request: NextRequest) {
-  const { 
-    chunk, 
-    chunkIndex, 
-    totalChunks, 
-    totalPages,
-    previousEntries = [], 
-    exampleIndex = '',
-    isSecondPass = false  // New parameter
-  } = await request.json();
 
   try {
+    const requestData = await request.json();
+    const { 
+      chunk, 
+      chunkIndex, 
+      totalChunks, 
+      totalPages,
+      previousEntries = [], 
+      exampleIndex = '',
+      isSecondPass = false
+    } = requestData;
 
+    // If this is the second pass, use a different handler with the already parsed data
+    if (isSecondPass) {
+      return await handleSecondPass(requestData);
+    }
+
+    // First pass validation
     if (!chunk || typeof chunk !== 'string') {
       return NextResponse.json(
         { error: 'Invalid document chunk provided' },
@@ -51,23 +58,8 @@ export async function POST(request: NextRequest) {
     console.log(`Processing chunk ${chunkIndex + 1}/${totalChunks} (pages ~${startPage}-${endPage}) with length ${processedChunk.length}`);
     
 
-      const systemPrompt = `You are an expert book indexer for academic books following Chicago Manual of Style guidelines. 
-      You are analyzing a chunk of text to identify potential index terms.
-
-      For this FIRST PASS, focus on:
-      1. Identifying ALL potentially index-worthy terms, concepts, people, places, and themes
-      2. Cast a wide net - it's better to include too many terms than miss important ones
-      3. Include specific page numbers based on your estimate of where content appears in this chunk
-      4. Create a basic hierarchical structure for obviously related terms
-      5. Focus on terms that readers would likely look up
-      6. Include both explicit terms mentioned in the text AND implicit concepts discussed
-
-      Remember:
-      - This is just the first pass to gather candidates
-      - Another pass will refine these terms later
-      - Aim for comprehensive coverage rather than perfect organization
-      - For a ${totalPages} page document, we should eventually have about ${totalPages} total entries
-      - Include page numbers, not just page ranges for entire sections.`;
+    const systemPrompt = `You are an expert book indexer for academic books following Chicago Manual of Style guidelines. 
+    You are analyzing a chunk of text to identify potential index terms.`;
 
     try {
       console.log('Making full indexing API call...');
@@ -80,6 +72,22 @@ export async function POST(request: NextRequest) {
           {
             role: "user",
             content: `Create a professional index for this book excerpt. The excerpt spans approximately pages ${startPage} to ${endPage}.
+
+                ## TASK ##
+                For this FIRST PASS, focus on:
+                1. Identifying ALL potentially index-worthy terms, concepts, people, places, and themes
+                2. Cast a wide net - include many terms even if you're unsure of their importance
+                3. Be generous with your identification - aim for quantity at this stage
+                4. Include specific page numbers based on your estimate of where content appears in this chunk
+                5. Create hierarchical structure for terms that are especially broad (about 30% of the terms should be broad terms).
+                6. Consider explicitly named authors and people as well as abstract concepts and themes that might not be explicitly named
+                7. Try to identify at least 20-30 terms or phrases for this chunk of text. 
+                
+                Remember:
+                - This is just the first pass to gather candidates
+                - Another pass will refine these terms later
+                - Aim for comprehensive coverage rather than perfect organization
+                - Include terms at varying levels of specificity (both general and specific concepts)
             Your most important instruction: Your response message will not include any text except the JSON. For proper formatting, return ONLY a JSON object with this exact structure:
             {
               "entries": [
@@ -120,7 +128,7 @@ export async function POST(request: NextRequest) {
         throw new Error('No text content received from Claude API');
       }
       
-      console.log('Extracted text content:', responseText.substring(0, 2000));
+      console.log('Extracted text content:', responseText);
       
       // Try to extract and parse JSON
       try {
@@ -234,14 +242,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleSecondPass(request: NextRequest) {
+async function handleSecondPass(requestData: any) {
   try {
     const { 
       allEntries,
       totalPages,
       exampleIndex = '',
       documentSummary = ''
-    } = await request.json();
+    } = requestData;
 
     if (!allEntries || !Array.isArray(allEntries) || allEntries.length === 0) {
       return NextResponse.json(
@@ -259,24 +267,7 @@ async function handleSecondPass(request: NextRequest) {
 
     console.log(`Starting second pass refinement for ${allEntries.length} entries in a ${totalPages}-page document`);
     
-    const systemPrompt = `You are an expert book indexer following Chicago Manual of Style guidelines.
-    Your task is to refine and organize a raw list of index entries to create a professional, coherent index.
-
-    For this refinement phase:
-    1. Evaluate the relevance of each entry to the overall document theme
-    2. Remove truly irrelevant entries that wouldn't help readers
-    3. Consolidate related concepts under main entries with appropriate subentries
-    4. Ensure proper hierarchical organization (main entries vs. subentries)
-    5. Standardize terminology and fix inconsistencies
-    6. Maintain approximately 1 index entry per page of content, aiming for ${Math.round(totalPages * 0.9)} to ${Math.round(totalPages * 1.1)} total entries
-    7. For concepts that appear on the same page numbers, combine them into main/sub relationships when appropriate
-    8. Convert overly specific entries into broader concepts
-    9. Ensure entries are distributed across the document's page range
-    10. Ensure page numbers are specific and accurate, not just broad ranges
-    11. Fix any inconsistent formatting of terms and page numbers
-    12. Create see/see also cross-references for related terms
-    
-    Focus on creating an index that will be genuinely useful to readers. Think about what terms readers might look up.`;
+    const systemPrompt = `You are an expert academic book indexer following Chicago Manual of Style guidelines.`;
 
     try {
       console.log('Making refinement API call...');
@@ -289,6 +280,23 @@ async function handleSecondPass(request: NextRequest) {
           {
             role: "user",
             content: `I need you to refine and improve this raw index for a ${totalPages}-page document.
+
+                ## TASK ##
+                Refine and organize a raw list of index entries to create a professional, coherent index.
+
+                For this refinement phase:
+                1. For this ${totalPages}-page document, create approximately ${Math.round(totalPages)} entries
+                2. Maintain breadth of coverage - preserve most terms from the first pass
+                3. Only remove entries that are truly irrelevant to the book's audience or redundant
+                4. Consolidate related concepts under main entries with appropriate subentries
+                5. Ensure proper hierarchical organization (main entries vs. subentries)
+                6. Standardize terminology and fix inconsistencies
+                7. For concepts that appear on the same page numbers, combine them only when truly related
+                8. Ensure entries are distributed across the document's page range
+                9. Create see/see also cross-references for related terms
+                10. Entries with just one sub-entry should be consolidated into one top-level entry.
+
+                DO NOT over-consolidate entries.
             
             ${documentSummary ? `Here is a summary of the document: ${documentSummary}` : ''}
             

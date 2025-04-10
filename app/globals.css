@@ -5,3 +5,46 @@
 body {
   @apply bg-white text-gray-900;
 }
+
+.verification-title {
+  font-size: 2.5rem !important; /* text-xl size */
+}
+
+h1, h2 {
+  font-family: var(--font-playfair), serif;
+  font-weight: 600;
+  color: #333333;
+}
+
+p, span, div {
+  font-family: 'Inter', sans-serif;
+  color: #555555;
+}
+
+@keyframes book-open {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-book-open {
+  animation: book-open 1.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.fade-in-delay-1 {
+  animation: fadeIn 0.6s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+.fade-in-delay-2 {
+  animation: fadeIn 0.6s ease-out 0.4s forwards;
+  opacity: 0;
+}

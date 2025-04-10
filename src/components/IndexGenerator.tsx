@@ -617,7 +617,7 @@ const IndexGenerator = (): React.ReactElement => {
                 Use an Example Index for Style Reference
               </label>
             </div>
-            <p className="text-gray-500 text-sm mb-2">Providing an example index will help Claude follow a specific style and format</p>
+            <p className="text-gray-500 text-sm mb-2">Providing an example index will help Tandem follow a specific style and format</p>
             
             {showExampleInput && (
               <textarea
