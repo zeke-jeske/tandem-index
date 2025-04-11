@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
-import Anthropic from '@anthropic-ai/sdk';
 import mammoth from 'mammoth';
 
 interface IndexEntry {
@@ -34,23 +33,27 @@ const IndexGenerator = (): React.ReactElement => {
     status: 'idle',
     progress: 0
   });
+  const [showUploadSuccess, setShowUploadSuccess] = useState(false);
   
   const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Define steps for the process
+  const steps = [
+    { name: 'Upload', description: 'Upload your document' },
+    { name: 'Configure', description: 'Set parameters' },
+    { name: 'Generate', description: 'Create your index' }
+  ];
+  
+  const [currentStep, setCurrentStep] = useState(0);
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       if (selectedFile.name.endsWith('.docx')) {
         setFile(selectedFile);
-        // Reset everything when a new file is selected
-        setIndexEntries([]);
-        setProcessingStatus({
-          currentChunk: 0,
-          totalChunks: 0,
-          entriesGenerated: 0,
-          status: 'idle',
-          progress: 0
-        });
+        setShowUploadSuccess(true);
+        setCurrentStep(1);
+        setTimeout(() => setShowUploadSuccess(false), 2000);
       }
     }
   };
@@ -200,6 +203,7 @@ const IndexGenerator = (): React.ReactElement => {
         progress: 0
       });
       setIndexEntries([]);
+      setCurrentStep(2);
       
       console.log('Extracting text from DOCX...');
       
@@ -540,7 +544,7 @@ const IndexGenerator = (): React.ReactElement => {
     return indexEntries.map((entry, index) => (
       <div key={index} className="mb-2">
         <div className="flex">
-          <div className="flex-grow">{entry.term}</div>
+          <div className="flex-grow font-medium">{entry.term}</div>
           <div className="text-gray-600">{entry.pageNumbers}</div>
         </div>
         {entry.subentries && entry.subentries.length > 0 && (
@@ -557,126 +561,180 @@ const IndexGenerator = (): React.ReactElement => {
     ));
   };
   
-  {/* Rest of the component remains the same */}
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-3xl">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">Tandem Index Generator</h1>
-          <p className="text-gray-600 mt-2">
-            Upload a document to generate a professional index
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
+      <div className="w-full text-center max-w-5xl">
+        <div className="text-center w-full mb-8 fade-in">
+          <h1 className="verification-title mb-4 leading-snug font-serif text-gray-800">Create a professional index for your book.</h1>
+          <p className="text-gray-600 font-sans fade-in-delay-1">
+            Upload your document, set your preferences, and let Tandem do the rest.
           </p>
         </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <div className="mb-6">
-            <label htmlFor="document-upload" className="block text-gray-700 font-medium mb-2">
-              Upload Document
-            </label>
-            <div className="flex items-center">
-              <input
-                id="document-upload"
-                type="file"
-                accept=".docx"
-                onChange={handleFileChange}
-                className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                disabled={processingStatus.status === 'processing' || processingStatus.status === 'merging'}
-              />
-            </div>
-            {file && <p className="text-green-600 text-sm mt-1">Selected: {file.name}</p>}
+
+        <div className="mb-8 w-full">
+          {/* Step Indicators */}
+          <div className="flex justify-between max-w-xl mx-auto mb-2">
+            {steps.map((step, index) => (
+              <div key={`indicator-${index}`} className="w-1/3 flex items-center">
+                {index > 0 && (
+                  <div className={`h-0.5 flex-grow ${index <= currentStep ? 'bg-mint' : 'bg-gray-200'}`} />
+                )}
+                <div 
+                  className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${
+                    index < currentStep 
+                      ? 'bg-mint' 
+                      : index === currentStep 
+                        ? 'border-2 border-mint bg-white' 
+                        : 'border-2 border-gray-200 bg-white'
+                  }`}
+                >
+                  <span className={`${index < currentStep ? 'text-white' : index === currentStep ? 'text-mint' : 'text-gray-500'}`}>
+                    {index + 1}
+                  </span>
+                </div>
+                {index < steps.length - 1 && (
+                  <div className={`h-0.5 flex-grow ${index < currentStep ? 'bg-mint' : 'bg-gray-200'}`} />
+                )}
+              </div>
+            ))}
           </div>
-          
-          <div className="mb-6">
-            <label htmlFor="page-count" className="block text-gray-700 font-medium mb-2">
-              Number of Pages in Document
-            </label>
-            <input
-              id="page-count"
-              type="number"
-              min="1"
-              value={documentPageCount || ''}
-              onChange={(e) => setDocumentPageCount(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Enter page count"
-              disabled={processingStatus.status === 'processing' || processingStatus.status === 'merging'}
-            />
-            <p className="text-gray-500 text-sm mt-1">This helps generate accurate page numbers for the index</p>
-          </div>
-          
-          <div className="mb-6">
-            <div className="flex items-center mb-2">
-              <input
-                id="use-example"
-                type="checkbox"
-                checked={showExampleInput}
-                onChange={(e) => setShowExampleInput(e.target.checked)}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                disabled={processingStatus.status === 'processing' || processingStatus.status === 'merging'}
-              />
-              <label htmlFor="use-example" className="ml-2 block text-gray-700 font-medium">
-                Use an Example Index for Style Reference
-              </label>
-            </div>
-            <p className="text-gray-500 text-sm mb-2">Providing an example index will help Tandem follow a specific style and format</p>
-            
-            {showExampleInput && (
-              <textarea
-                id="example-index"
-                rows={6}
-                value={exampleIndex}
-                onChange={(e) => setExampleIndex(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Paste an example index here to guide the style and format..."
-                disabled={processingStatus.status === 'processing' || processingStatus.status === 'merging'}
-              />
-            )}
-          </div>
-          
-          <div className="flex space-x-3">
-            <button
-              onClick={processDocument}
-              disabled={!file || documentPageCount <= 0 || processingStatus.status === 'processing' || processingStatus.status === 'merging'}
-              className={`flex-grow py-3 px-4 rounded-lg text-white font-medium ${
-                !file || documentPageCount <= 0 || processingStatus.status === 'processing' || processingStatus.status === 'merging'
-                  ? 'bg-indigo-300'
-                  : 'bg-indigo-600 hover:bg-indigo-700'
-              } transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
-            >
-              {processingStatus.status === 'processing' || processingStatus.status === 'merging'
-                ? 'Processing...'
-                : 'Generate Index'}
-            </button>
-            
-            {(processingStatus.status === 'processing' || processingStatus.status === 'merging') && (
-              <button
-                onClick={cancelProcessing}
-                className="py-3 px-4 rounded-lg text-white font-medium bg-red-600 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-              >
-                Cancel
-              </button>
-            )}
+
+          {/* Step Texts - separate but with matching widths */}
+          <div className="flex justify-between max-w-3xl mx-auto mb-2">
+            {steps.map((step, index) => (
+              <div key={`text-${index}`} className="w-1/3 text-center">
+                <div className={`text-sm font-medium ${index <= currentStep ? 'text-mint' : 'text-gray-500'}`}>
+                  {step.name}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {step.description}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
         
+        {currentStep === 0 && (
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="mb-6">
+              <label 
+                htmlFor="document-upload" 
+                className="block w-full cursor-pointer text-center p-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+              >
+                <div className="flex flex-col items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  {file ? (
+                    <p className="text-gray-700 font-medium">{file.name}</p>
+                  ) : (
+                    <>
+                      <p className="text-gray-700 font-medium">Upload your document</p>
+                      <p className="text-gray-500 text-sm mt-1">Choose a .docx file</p>
+                    </>
+                  )}
+                </div>
+                <input 
+                  id="document-upload" 
+                  name="document" 
+                  type="file" 
+                  accept=".docx" 
+                  className="hidden" 
+                  onChange={handleFileChange} 
+                />
+              </label>
+              {processingStatus.error && <p className="text-red-500 text-sm mt-2">{processingStatus.error}</p>}
+            </div>
+          </div>
+        )}
+        
+        {currentStep === 1 && (
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Configure Index Generation</h2>
+            
+            <div className="mb-6">
+              <label htmlFor="page-count" className="block text-gray-700 font-medium mb-2">
+                Number of Pages in Document
+              </label>
+              <input
+                id="page-count"
+                type="number"
+                min="1"
+                value={documentPageCount || ''}
+                onChange={(e) => setDocumentPageCount(parseInt(e.target.value) || 0)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Enter page count"
+              />
+              <p className="text-gray-500 text-sm mt-1">This helps generate accurate page numbers for the index</p>
+            </div>
+            
+            <div className="mb-6">
+              <div className="flex items-center mb-2">
+                <input
+                  id="use-example"
+                  type="checkbox"
+                  checked={showExampleInput}
+                  onChange={(e) => setShowExampleInput(e.target.checked)}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <label htmlFor="use-example" className="ml-2 block text-gray-700 font-medium">
+                  Use an Example Index for Style Reference (Optional)
+                </label>
+              </div>
+              <p className="text-gray-500 text-sm mb-2">Providing an example index will help Tandem follow a specific style.</p>
+              
+              {showExampleInput && (
+                <textarea
+                  id="example-index"
+                  rows={6}
+                  value={exampleIndex}
+                  onChange={(e) => setExampleIndex(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Paste an example index here to guide the style and format..."
+                />
+              )}
+            </div>
+            
+            <button
+              onClick={processDocument}
+              disabled={!documentPageCount || documentPageCount <= 0}
+              className={`w-fit py-3 px-4 rounded-lg text-white font-medium ${
+                !documentPageCount || documentPageCount <= 0 ? 'bg-lightRed' : 'bg-darkRed hover:bg-darkRed'
+              } transition-colors focus:outline-none focus:ring-2 focus:ring-darkRed focus:ring-offset-2`}
+            >
+              Generate Index
+            </button>
+          </div>
+        )}
+        
         {(processingStatus.status === 'processing' || processingStatus.status === 'merging') && (
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-2xl font-sans text-gray-800 mb-4">
               {processingStatus.status === 'processing'
-                ? `Processing Chunk ${processingStatus.currentChunk} of ${processingStatus.totalChunks}`
-                : 'Finalizing Index'}
+                ? `Processing Chunk ${processingStatus.currentChunk} of ${processingStatus.totalChunks}...`
+                : 'Completing Index...'}
             </h2>
             
             <div className="relative pt-1">
               <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-indigo-200">
                 <div
                   style={{ width: `${processingStatus.progress}%` }}
-                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-600 transition-all duration-500"
+                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-mint transition-all duration-500"
                 ></div>
               </div>
               <div className="flex justify-between text-xs text-gray-600">
                 <span>{processingStatus.progress}% Complete</span>
                 <span>{processingStatus.entriesGenerated} Entries Generated</span>
               </div>
+            </div>
+            
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={cancelProcessing}
+                className="py-2 px-4 rounded-lg text-white font-medium bg-gray-600 hover:bg-gray-700 transition-colors focus:outline-none"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         )}
@@ -685,23 +743,51 @@ const IndexGenerator = (): React.ReactElement => {
           <div className="bg-red-50 p-6 rounded-lg shadow-md mb-6 border border-red-200">
             <h2 className="text-lg font-semibold text-red-800 mb-2">Error</h2>
             <p className="text-red-600">{processingStatus.error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 w-full py-2 px-4 rounded-lg text-white font-medium bg-darkRed hover:bg-red-700 transition-colors focus:outline-none"
+            >
+              Try Again
+            </button>
           </div>
         )}
         
         {processingStatus.status === 'complete' && (
-          <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">Generated Index</h2>
+              <h2 className="text-xl font-semibold text-gray-800">Your Index</h2>
               <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
                 {indexEntries.length} Main Entries
               </span>
             </div>
             
-            <div className="h-96 overflow-y-auto border border-gray-200 rounded p-4 mb-4 font-serif">
+            {processingStatus.error && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-yellow-800 text-sm">{processingStatus.error}</p>
+              </div>
+            )}
+            
+            <div className="h-96 text-left overflow-y-auto border border-gray-200 rounded p-4 mb-4 font-serif">
               {formatIndexEntries()}
             </div>
             
-            <div className="flex justify-end">
+            <div className="flex justify-between">
+              <button
+                onClick={() => {
+                  setCurrentStep(1);
+                  setProcessingStatus({
+                    currentChunk: 0,
+                    totalChunks: 0,
+                    entriesGenerated: 0,
+                    status: 'idle',
+                    progress: 0
+                  });
+                }}
+                className="py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors focus:outline-none"
+              >
+                Adjust Settings
+              </button>
+              
               <button
                 onClick={() => {
                   // Download as text file
@@ -723,10 +809,48 @@ const IndexGenerator = (): React.ReactElement => {
                   document.body.removeChild(a);
                   URL.revokeObjectURL(url);
                 }}
-                className="py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                className="py-2 px-4 bg-darkRed text-white rounded-lg hover:bg-red-700 transition-colors focus:outline-none"
               >
                 Download Index
               </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Show upload success message */}
+        {showUploadSuccess && (
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-lg">
+              <div className="flex flex-col items-center">
+                <div className="w-24 h-24 mb-4 relative">
+                  {/* Replace with improved SVG */}
+                  <svg className="animate-book-open" viewBox="0 0 100 100">
+                    {/* Book cover */}
+                    <rect x="15" y="25" width="70" height="55" rx="2" fill="#B54646" className="book-cover" />
+                    
+                    {/* Book spine */}
+                    <rect x="15" y="25" width="5" height="55" fill="#933a3a" />
+                    
+                    {/* Pages - these animate to open */}
+                    <path className="book-left-page" d="M20,30 L20,75 Q20,80 25,80 L50,80 L50,30 Z" fill="#f8f8f8" />
+                    <path className="book-right-page" d="M80,30 L80,75 Q80,80 75,80 L50,80 L50,30 Z" fill="#f8f8f8" />
+                    
+                    {/* Page details - lines of text */}
+                    <g className="book-lines">
+                      <line x1="25" y1="40" x2="45" y2="40" stroke="#ddd" strokeWidth="1" />
+                      <line x1="25" y1="45" x2="45" y2="45" stroke="#ddd" strokeWidth="1" />
+                      <line x1="25" y1="50" x2="40" y2="50" stroke="#ddd" strokeWidth="1" />
+                      <line x1="55" y1="40" x2="75" y2="40" stroke="#ddd" strokeWidth="1" />
+                      <line x1="55" y1="45" x2="75" y2="45" stroke="#ddd" strokeWidth="1" />
+                      <line x1="55" y1="50" x2="70" y2="50" stroke="#ddd" strokeWidth="1" />
+                    </g>
+                    
+                    {/* Book title box */}
+                    <rect x="25" y="15" width="50" height="10" rx="2" fill="#5EA89B" className="book-title" />
+                  </svg>
+                </div>
+                <p className="text-darkRed font-medium text-xl">File Uploaded!</p>
+              </div>
             </div>
           </div>
         )}

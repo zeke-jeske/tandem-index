@@ -6,10 +6,6 @@ body {
   @apply bg-white text-gray-900;
 }
 
-.verification-title {
-  font-size: 2.5rem !important; /* text-xl size */
-}
-
 h1, h2 {
   font-family: var(--font-playfair), serif;
   font-weight: 600;
@@ -21,13 +17,73 @@ p, span, div {
   color: #555555;
 }
 
-@keyframes book-open {
-  0% { transform: scale(0.8); opacity: 0; }
-  50% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+/* Colors */
+:root {
+  --mint: #5EA89B;
+  --lightRed: #e5b0b0;
+  --darkRed: #B54646;
 }
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+.fade-in-delay-1 {
+  animation: fadeIn 0.6s ease-in-out 0.3s forwards;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Typography */
+.verification-title {
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: #333;
+  max-width: 2xl;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .animate-book-open {
-  animation: book-open 1.5s ease-out forwards;
+  animation: book-open 0.8s ease-out forwards;
+}
+
+/* Utility classes */
+.bg-mint {
+  background-color: var(--mint);
+}
+
+.text-mint {
+  color: var(--mint);
+}
+
+.border-mint {
+  border-color: var(--mint);
+}
+
+.bg-darkRed {
+  background-color: var(--darkRed);
+}
+
+.bg-lightRed {
+  background-color: var(--lightRed);
+}
+
+.text-darkRed {
+  color: var(--darkRed);
+}
+
+.border-darkRed {
+  border-color: var(--darkRed);
+}
+
+.focus-ring-darkRed:focus {
+  --tw-ring-color: var(--darkRed);
 }
 
 @keyframes fadeIn {
@@ -47,4 +103,49 @@ p, span, div {
 .fade-in-delay-2 {
   animation: fadeIn 0.6s ease-out 0.4s forwards;
   opacity: 0;
+}
+
+@keyframes book-open {
+  0% { 
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.book-left-page {
+  transform-origin: 20px 80px;
+  animation: openLeftPage 1s ease-out forwards;
+}
+
+.book-right-page {
+  transform-origin: 80px 80px;
+  animation: openRightPage 1s ease-out forwards;
+}
+
+.book-lines {
+  opacity: 0;
+  animation: fadeInLines 0.5s ease-in 0.7s forwards;
+}
+
+@keyframes openLeftPage {
+  0% { transform: rotateY(70deg); }
+  100% { transform: rotateY(0deg); }
+}
+
+@keyframes openRightPage {
+  0% { transform: rotateY(-70deg); }
+  100% { transform: rotateY(0deg); }
+}
+
+@keyframes fadeInLines {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }

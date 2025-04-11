@@ -26,7 +26,7 @@ export default function RootLayout({
       <head>
         {/* Other head elements */}
       </head>
-      <body>{children}</body>
+      <body className="bg-gray-100">{children}</body>
     </html>
   );
 }

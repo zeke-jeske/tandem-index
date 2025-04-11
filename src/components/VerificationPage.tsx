@@ -156,7 +156,16 @@ const handleVerify = async () => {
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
-      <div className="mb-8 w-full">
+      <div className="w-full text-center max-w-5xl">
+        <div className="text-center mb-8 fade-in">
+        <h1 className="verification-title mb-4 leading-snug font-serif text-gray-800">Verify that Tandem can understand your book.</h1>          
+        <p className="text-gray-600 font-sans fade-in-delay-1">
+            Upload a sample chapter to verify Tandem's understanding of your page numbers and chapters.
+          </p>
+        </div>
+
+        <div className="mb-8 w-full">
+        
         {/* Step Indicators */}
         <div className="flex justify-between max-w-xl mx-auto mb-2">
           {steps.map((step, index) => (
@@ -198,13 +207,6 @@ const handleVerify = async () => {
           ))}
         </div>
       </div>
-      <div className="w-full text-center max-w-5xl">
-        <div className="text-center mb-8 fade-in">
-        <h1 className="verification-title mb-4 leading-snug font-serif text-gray-800">Verify that Tandem can understand your book.</h1>          
-        <p className="text-gray-600 font-sans fade-in-delay-1">
-            Upload a sample chapter to verify Tandem's understanding of your page numbers and chapters.
-          </p>
-        </div>
         
         {!passages.length ? (
           <div className="bg-white p-6 rounded-lg shadow-md">

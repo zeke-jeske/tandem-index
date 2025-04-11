@@ -7,13 +7,13 @@ const Navigation = () => {
   const pathname = usePathname();
   
   return (
-    <nav className="bg-beige shadow-md">
+    <nav className="bg-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 py-2">
         <div className="flex justify-between items-center h-14">
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
               <Image 
-                src="/images/logo.png" 
+                src="/images/logo1.png" 
                 alt="Tandem Index Logo" 
                 width={120} 
                 height={32} 

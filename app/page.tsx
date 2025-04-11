@@ -8,11 +8,8 @@ export default function Home() {
       <Head>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+Pro:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap"></link>
         </Head>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-100">
         <Navigation />
-        <div className="py-6 bg-gray-100">
-          <VerificationPage />
-        </div>
       </div>
     </>
   );
