@@ -3,11 +3,18 @@ import "./globals.css";
 
 // In app/layout.tsx
 import { Playfair_Display } from 'next/font/google';
+import { Public_Sans } from 'next/font/google';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-playfair',
+  weight: ['400', '500', '600', '700'],
+});
+
+const public_sans = Public_Sans({
+  display: 'swap',
+  variable: '--font-public-sans',
   weight: ['400', '500', '600', '700'],
 });
 

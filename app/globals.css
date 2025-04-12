@@ -8,13 +8,10 @@ body {
 
 h1, h2 {
   font-family: var(--font-playfair), serif;
-  font-weight: 600;
-  color: #333333;
 }
 
 p, span, div {
-  font-family: 'Inter', sans-serif;
-  color: #555555;
+  font-family: var(--font-public-sans), sans-serif;
 }
 
 /* Colors */
@@ -22,6 +19,7 @@ p, span, div {
   --mint: #5EA89B;
   --lightRed: #e5b0b0;
   --darkRed: #B54646;
+  --navy: #293653;
 }
 
 /* Animation classes */
