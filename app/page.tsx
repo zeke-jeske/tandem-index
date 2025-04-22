@@ -18,7 +18,7 @@ export default function Home() {
           </Link>
           <Link
             href="/index"
-          className="px-6 py-3 !text-white bg-transparent border-2 border-white rounded-lg hover:bg-white hover:text-gray-900 transition-colors"
+          className="px-6 py-3 text-white bg-transparent border-2 border-white rounded-lg hover:bg-white hover:text-gray-900 transition-colors"
           >
             Generate Index
           </Link>

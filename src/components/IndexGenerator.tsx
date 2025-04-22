@@ -26,6 +26,9 @@ const IndexGenerator = (): React.ReactElement => {
   const [indexEntries, setIndexEntries] = useState<IndexEntry[]>([]);
   const [exampleIndex, setExampleIndex] = useState<string>('');
   const [showExampleInput, setShowExampleInput] = useState<boolean>(false);
+  const [audienceLevel, setAudienceLevel] = useState<number>(1); // 0=high school, 1=undergraduate, 2=graduate
+  const [indexDensity, setIndexDensity] = useState<number>(1); // 0=broad, 1=medium, 2=detailed
+  const [targetAudience, setTargetAudience] = useState<string>('');
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>({
     currentChunk: 0,
     totalChunks: 0,
