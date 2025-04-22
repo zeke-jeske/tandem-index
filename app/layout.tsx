@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${playfair.variable}`}>
+    <html lang="en" className={`${playfair.variable} ${public_sans.variable}`}>
       <head>
         {/* Other head elements */}
       </head>
