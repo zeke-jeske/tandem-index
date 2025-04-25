@@ -20,7 +20,7 @@ const publicSans = Public_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Tandem Index - AI Book Indexing",
+  title: "Tandem Index - Create your index with AI",
   description: "Professional book indexing with AI",
 };
 
