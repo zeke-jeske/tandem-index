@@ -11,13 +11,13 @@ export default function Home() {
         <p className="text-xl text-white font-public-sans md:text-2xl mb-8">AI-powered book indexing that works alongside you.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link 
-            href="/index" 
+            href="/generator" 
             className="px-6 py-3 !text-white bg-darkRed rounded-lg transition-colors"
           >
             Try the Demo
           </Link>
           <Link
-            href="/index"
+            href="/generator"
           className="px-6 py-3 text-white border-2 bg-transparent border-white rounded-lg hover:bg-white hover:text-navy transition-colors"
           >
             Generate Index
