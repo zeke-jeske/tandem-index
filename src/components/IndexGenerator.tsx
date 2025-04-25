@@ -29,6 +29,7 @@ const IndexGenerator = (): React.ReactElement => {
   const [audienceLevel, setAudienceLevel] = useState<number>(1); // 0=high school, 1=undergraduate, 2=graduate
   const [indexDensity, setIndexDensity] = useState<number>(1); // 0=broad, 1=medium, 2=detailed
   const [targetAudience, setTargetAudience] = useState<string>('');
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>({
     currentChunk: 0,
     totalChunks: 0,
@@ -336,7 +337,10 @@ const IndexGenerator = (): React.ReactElement => {
               previousEntries: i > 0 ? allEntries.slice(0, 20) : [], // Send a sample of previous entries
               exampleIndex: showExampleInput ? exampleIndex : '', // Send example index if provided
               isSecondPass: false, // Explicitly mark as first pass
-              documentSummary: documentSummary // Include summary for context
+              documentSummary: documentSummary, // Include summary for context
+              audienceLevel: audienceLevel === 0 ? "high_school" : audienceLevel === 1 ? "undergraduate" : "graduate",
+              indexDensity: indexDensity === 0 ? "broad" : indexDensity === 1 ? "medium" : "detailed",
+              targetAudience: targetAudience
             }),
             signal: abortControllerRef.current.signal
           });
@@ -409,7 +413,10 @@ const IndexGenerator = (): React.ReactElement => {
             allEntries,
             totalPages: documentPageCount,
             exampleIndex: showExampleInput ? exampleIndex : '',
-            documentSummary
+            documentSummary,
+            audienceLevel: audienceLevel === 0 ? "high_school" : audienceLevel === 1 ? "undergraduate" : "graduate",
+            indexDensity: indexDensity === 0 ? "broad" : indexDensity === 1 ? "medium" : "detailed",
+            targetAudience: targetAudience
           }),
           signal: abortControllerRef.current.signal
         });
@@ -440,10 +447,13 @@ const IndexGenerator = (): React.ReactElement => {
             status: 'complete',
             progress: 100,
           }));
+          setShowSuccessPopup(true); // Show the success popup
+          setTimeout(() => setShowSuccessPopup(false), 4000); // Hide after 4 seconds
         } else {
           console.error('Invalid refined entries:', refinedData);
           throw new Error('Refinement did not return valid entries');
         }
+
       } catch (refinementError) {
         console.error('Error during refinement phase:', refinementError);
         
@@ -653,10 +663,10 @@ const IndexGenerator = (): React.ReactElement => {
         
         {currentStep === 1 && (
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Configure Index Generation</h2>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">Configure Index Generation</h2>
             
-            <div className="mb-6">
-              <label htmlFor="page-count" className="block text-gray-700 font-medium mb-2">
+            <div className="mb-8 text-left">
+              <label htmlFor="page-count" className="block text-gray-700 text-lg font-medium mb-2">
                 Number of Pages in Document
               </label>
               <input
@@ -665,10 +675,73 @@ const IndexGenerator = (): React.ReactElement => {
                 min="1"
                 value={documentPageCount || ''}
                 onChange={(e) => setDocumentPageCount(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter page count"
+                className="w-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Pages"
               />
-              <p className="text-gray-500 text-sm mt-1">This helps generate accurate page numbers for the index</p>
+              <p className="text-gray-500 text-sm mt-1">This helps generate accurate page numbers for the index.</p>
+            </div>
+            
+            <div className="mb-8 text-left">
+              <label htmlFor="audience-level" className="block text-gray-700 text-lg font-medium mb-4">
+                Audience Level
+              </label>
+              <div className="flex flex-col w-96">
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-500 text-sm">High School</span>
+                  <span className="text-gray-500 text-sm">Undergraduate</span>
+                  <span className="text-gray-500 text-sm">Graduate</span>
+                </div>
+                <input
+                  id="audience-level"
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="1"
+                  value={audienceLevel}
+                  onChange={(e) => setAudienceLevel(parseInt(e.target.value))}
+                  className="w-96 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+              <p className="text-gray-500 text-sm mt-4">Select the approximate audience level for your index.</p>
+            </div>
+            
+            <div className="mb-8 text-left">
+              <label htmlFor="index-density" className="block text-gray-700 text-lg font-medium mb-4">
+                Index Density
+              </label>
+              <div className="flex flex-col w-96">
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-500 text-sm">Broad</span>
+                  <span className="text-gray-500 text-sm">Medium</span>
+                  <span className="text-gray-500 text-sm">Detailed</span>
+                </div>
+                <input
+                  id="index-density"
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="1"
+                  value={indexDensity}
+                  onChange={(e) => setIndexDensity(parseInt(e.target.value))}
+                  className="w-96 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+              <p className="text-gray-500 text-sm mt-4">Select how detailed you want your index to be.</p>
+            </div>
+            
+            <div className="mb-6 text-left">
+              <label htmlFor="target-audience" className="block text-gray-700 text-lg font-medium mb-2">
+                Target Audience Description
+              </label>
+              <textarea
+                id="target-audience"
+                rows={3}
+                value={targetAudience}
+                onChange={(e) => setTargetAudience(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Describe your book's target audience in a few sentences..."
+              />
+              <p className="text-gray-500 text-sm mt-1">Helps Tandem tailor the index to your specific audience.</p>
             </div>
             
             <div className="mb-6">
@@ -680,7 +753,7 @@ const IndexGenerator = (): React.ReactElement => {
                   onChange={(e) => setShowExampleInput(e.target.checked)}
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
-                <label htmlFor="use-example" className="ml-2 block text-gray-700 font-medium">
+                <label htmlFor="use-example" className="ml-2 text-lg block text-gray-700 font-medium">
                   Use an Example Index for Style Reference (Optional)
                 </label>
               </div>
@@ -712,9 +785,9 @@ const IndexGenerator = (): React.ReactElement => {
         
         {(processingStatus.status === 'processing' || processingStatus.status === 'merging') && (
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-2xl font-sans text-gray-800 mb-4">
+            <h2 className="text-xl font-sans text-gray-800 mb-4">
               {processingStatus.status === 'processing'
-                ? `Processing Chunk ${processingStatus.currentChunk} of ${processingStatus.totalChunks}...`
+                ? `Generating Index -- Processing Chunk ${processingStatus.currentChunk} of ${processingStatus.totalChunks}...`
                 : 'Completing Index...'}
             </h2>
             
@@ -858,6 +931,23 @@ const IndexGenerator = (): React.ReactElement => {
           </div>
         )}
       </div>
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white/80 backdrop-blur-lg p-8 rounded-lg shadow-float animate-bounce-in">
+            <div className="flex flex-col items-center">
+              <div className="w-20 h-20 mb-4 bg-mint rounded-full flex items-center justify-center">
+                <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <p className="text-navy font-medium text-2xl mb-2">I've created the first draft of your index!</p>
+              <p className="text-gray-600 text-sm">Saving time feels nice, doesn't it?</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

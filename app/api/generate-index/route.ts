@@ -27,7 +27,10 @@ export async function POST(request: NextRequest) {
       totalPages,
       previousEntries = [], 
       exampleIndex = '',
-      isSecondPass = false
+      isSecondPass = false,
+      audienceLevel = 'undergraduate', // Default value
+      indexDensity = 'medium', // Default value
+      targetAudience = '' // Default value
     } = requestData;
 
     // If this is the second pass, use a different handler with the already parsed data
@@ -56,16 +59,42 @@ export async function POST(request: NextRequest) {
     const endPage = Math.min(totalPages, Math.floor((chunkIndex + 1) * pagesPerChunk));
     
     console.log(`Processing chunk ${chunkIndex + 1}/${totalChunks} (pages ~${startPage}-${endPage}) with length ${processedChunk.length}`);
-    
 
     const systemPrompt = `You are an expert book indexer for academic books following Chicago Manual of Style guidelines. 
-    You are analyzing a chunk of text to identify potential index terms.`;
+      You are analyzing a chunk of text to identify potential index terms.
+
+      ${exampleIndex ? `## EXAMPLE INDEX ##
+        Please follow the style and formatting of this example index:
+        ${exampleIndex}` : ''}
+        
+        ${previousEntries.length > 0 ? `## PREVIOUS ENTRIES ##
+        These entries have been identified in previous sections of the document:
+        ${JSON.stringify(previousEntries, null, 2)}
+        
+        Consider these entries when creating new ones to maintain consistency.` : ''}
+
+      ## AUDIENCE INFORMATION ##
+      Audience Level: ${audienceLevel}
+      Index Density: ${indexDensity}
+      Target Audience: ${targetAudience}
+
+      Adjust your indexing approach based on these parameters. For ${audienceLevel} audiences, focus on ${
+        audienceLevel === "high_school" ? "more basic concepts and clearer terminology" : 
+        audienceLevel === "undergraduate" ? "foundational concepts with some specialized terminology" : 
+        "advanced concepts and specialized terminology"
+      }.
+
+      For ${indexDensity} index density, create a ${
+        indexDensity === "broad" ? "more concise index with fewer general entries" : 
+        indexDensity === "medium" ? "balanced index with moderate detail" : 
+        "highly detailed index with specific subentries"
+      }.`;
 
     try {
       console.log('Making full indexing API call...');
       
       const fullResponse = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-3-7-sonnet-20250219",
         max_tokens: 5000,
         system: systemPrompt,
         messages: [
@@ -157,23 +186,17 @@ export async function POST(request: NextRequest) {
                               `${startPage}-${endPage}`,
                   subentries: item.subentries || []
                 }));
-              } else if (parsed.entries) {
-                // Handle {entries: [...]} format (preferred format)
-                indexEntries = parsed;
-              } else if (parsed.index_entries) {
-                // Handle {index_entries: [...]} format
-                indexEntries.entries = parsed.index_entries.map((item: any) => ({
+                if (!Array.isArray(parsed) && (parsed as any).entries || (parsed as any).index_entries || (parsed as any).indexEntries) {
+                // Handle different formats for entries
+                const entries = !Array.isArray(parsed) && (parsed as { entries?: any[]; index_entries?: any[]; indexEntries?: any[] }).entries || (parsed as { entries?: any[]; index_entries?: any[]; indexEntries?: any[] }).index_entries || (parsed as { entries?: any[]; index_entries?: any[]; indexEntries?: any[] }).indexEntries;
+                indexEntries.entries = (entries ?? []).map((item: any) => ({
                   term: item.term || 'unknown term',
-                  pageNumbers: item.page ? String(item.page) : `${startPage}-${endPage}`,
+                  pageNumbers: item.page ? String(item.page) : 
+                        item.pages ? Array.isArray(item.pages) ? item.pages.join(', ') : String(item.pages) : 
+                        `${startPage}-${endPage}`,
                   subentries: item.subentries || []
                 }));
-              } else if (parsed.indexEntries) {
-                // Handle {indexEntries: [...]} format
-                indexEntries.entries = parsed.indexEntries.map((item: any) => ({
-                  term: item.term || 'unknown term',
-                  pageNumbers: item.page ? String(item.page) : `${startPage}-${endPage}`,
-                  subentries: item.subentries || []
-                }));
+                }
               }
             } catch (parseError) {
               console.error('JSON parse error:', parseError);
@@ -248,7 +271,10 @@ async function handleSecondPass(requestData: any) {
       allEntries,
       totalPages,
       exampleIndex = '',
-      documentSummary = ''
+      documentSummary = '',
+      audienceLevel = 'undergraduate', // Default value
+      indexDensity = 'medium', // Default value
+      targetAudience = '' 
     } = requestData;
 
     if (!allEntries || !Array.isArray(allEntries) || allEntries.length === 0) {
@@ -267,13 +293,20 @@ async function handleSecondPass(requestData: any) {
 
     console.log(`Starting second pass refinement for ${allEntries.length} entries in a ${totalPages}-page document`);
     
-    const systemPrompt = `You are an expert academic book indexer following Chicago Manual of Style guidelines.`;
+    const systemPrompt = `You are an expert academic book indexer following Chicago Manual of Style guidelines.
 
+    ## AUDIENCE INFORMATION ##
+    Audience Level: ${audienceLevel}
+    Index Density: ${indexDensity}
+    Target Audience: ${targetAudience}
+    
+    When refining the index, use these parameters to guide your decisions about which entries to prioritize, combine, or elaborate.`;
+    
     try {
       console.log('Making refinement API call...');
       
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: "claude-3-7-sonnet-20250219",
         max_tokens: 8000,
         system: systemPrompt,
         messages: [

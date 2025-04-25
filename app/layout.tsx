@@ -12,7 +12,8 @@ const playfair = Playfair_Display({
   weight: ['400', '500', '600', '700'],
 });
 
-const public_sans = Public_Sans({
+const publicSans = Public_Sans({
+  subsets: ['latin'],
   display: 'swap',
   variable: '--font-public-sans',
   weight: ['400', '500', '600', '700'],
@@ -29,10 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${playfair.variable} ${public_sans.variable}`}>
-      <head>
-        {/* Other head elements */}
-      </head>
+    <html lang="en" className={`${playfair.variable} ${publicSans.variable}`}>
       <body className="bg-gray-100">{children}</body>
     </html>
   );

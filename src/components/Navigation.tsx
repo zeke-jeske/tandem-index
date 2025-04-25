@@ -23,9 +23,9 @@ const Navigation = () => {
           </div>
           <div className="hidden md:flex space-x-8">
             <Link
-              href="/"
+              href="/verify"
               className={`${
-                pathname === '/'
+                pathname === '/verify'
                   ? 'text-navy border-b-2 border-navy'
                   : 'text-gray-500 hover:text-gray-700'
               } px-3 py-2 text-1.5rem font-sans`}
