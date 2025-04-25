@@ -50,7 +50,7 @@ const Navigation = () => {
       <div className="md:hidden border-t border-gray-200">
         <div className="flex">
           <Link
-            href="/"
+            href="/verify"
             className={`${
               pathname === '/'
                 ? 'bg-indigo-50 text-indigo-600'
