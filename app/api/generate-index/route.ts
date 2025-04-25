@@ -166,49 +166,61 @@ export async function POST(request: NextRequest) {
 
         // Try to extract JSON content
         if (responseText.includes('```json')) {
-          // Extract content between json code blocks
-          const jsonContent = responseText.split('```json')[1]?.split('```')[0]?.trim();
-          console.log('Extracted JSON content:', jsonContent?.substring(0, 100) + '...');
-
-          if (jsonContent) {
-            try {
-              // Try to parse the JSON content
-              const parsed = JSON.parse(jsonContent);
-              console.log('Successfully parsed JSON:', typeof parsed);
-              
-              // Handle different response formats
-              if (Array.isArray(parsed)) {
-                // Handle array format
-                indexEntries.entries = parsed.map((item: any) => ({
-                  term: item.term || 'unknown term',
-                  pageNumbers: item.page ? String(item.page) : 
-                              item.pages ? Array.isArray(item.pages) ? item.pages.join(', ') : String(item.pages) : 
-                              `${startPage}-${endPage}`,
-                  subentries: item.subentries || []
-                }));
-                if (!Array.isArray(parsed) && (parsed as any).entries || (parsed as any).index_entries || (parsed as any).indexEntries) {
-                // Handle different formats for entries
-                const entries = !Array.isArray(parsed) && (parsed as { entries?: any[]; index_entries?: any[]; indexEntries?: any[] }).entries || (parsed as { entries?: any[]; index_entries?: any[]; indexEntries?: any[] }).index_entries || (parsed as { entries?: any[]; index_entries?: any[]; indexEntries?: any[] }).indexEntries;
-                indexEntries.entries = (entries ?? []).map((item: any) => ({
-                  term: item.term || 'unknown term',
-                  pageNumbers: item.page ? String(item.page) : 
-                        item.pages ? Array.isArray(item.pages) ? item.pages.join(', ') : String(item.pages) : 
-                        `${startPage}-${endPage}`,
-                  subentries: item.subentries || []
-                }));
-                }
-              }
-            } catch (parseError) {
-              console.error('JSON parse error:', parseError);
-              // Extract terms using regex as fallback
-              const terms = jsonContent.match(/"term"\s*:\s*"([^"]*)"/g);
-              if (terms) {
-                indexEntries.entries = terms.map(t => {
-                  const term = t.split(':')[1]?.replace(/"/g, '').trim() || 'unknown term';
-                  return { term, pageNumbers: `${startPage}-${endPage}` };
-                });
-              }
+          // Try to extract and parse JSON
+          try {
+            let indexEntries: { entries: { term: string; pageNumbers: string; subentries?: { term: string; pageNumbers: string; }[] }[] } = { entries: [] };
+            
+            // Clean up the response text and try to parse it
+            let jsonText = responseText;
+            
+            // If the response is wrapped in code blocks, extract just the JSON
+            if (jsonText.includes('```json')) {
+              jsonText = jsonText.split('```json')[1].split('```')[0].trim();
             }
+            
+            // Try to parse the JSON
+            const parsed = JSON.parse(jsonText);
+            
+            // No matter what format comes back, extract the entries array
+            let entries: any[] = [];
+            
+            if (Array.isArray(parsed)) {
+              // It's already an array of entries
+              entries = parsed;
+            } else if (parsed && typeof parsed === 'object') {
+              // It's an object with entries inside
+              entries = parsed.entries || parsed.index_entries || parsed.indexEntries || [];
+            }
+            
+            // Standardize the entries format
+            indexEntries.entries = entries.map((item: any) => ({
+              term: item.term || 'unknown term',
+              pageNumbers: item.pageNumbers || item.page_numbers || 
+                          (item.pages ? String(item.pages) : `${startPage}-${endPage}`),
+              subentries: item.subentries || []
+            }));
+            
+            // Filter out any entries with undefined terms
+            indexEntries.entries = indexEntries.entries.filter(entry => 
+              entry && entry.term && entry.term !== 'undefined' && entry.term !== 'unknown term'
+            );
+            
+            console.log(`Parsed ${indexEntries.entries?.length || 0} index entries`);
+            
+            return NextResponse.json({
+              success: true,
+              entries: indexEntries.entries
+            });
+          } catch (parseError) {
+            console.error('Failed to parse response:', parseError);
+            return NextResponse.json({
+              success: true,
+              warning: "Failed to parse response, using fallback entries",
+              entries: [
+                { term: "indexing", pageNumbers: `${startPage}` },
+                { term: "book content", pageNumbers: `${startPage}-${endPage}` }
+              ]
+            });
           }
         } else {
           // Try to parse the whole response as JSON
