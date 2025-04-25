@@ -1,3 +1,5 @@
+"use client";
+
 import IndexGenerator from '@/components/IndexGenerator';
 import Navigation from '@/components/Navigation';
 
