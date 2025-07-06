@@ -1,6 +1,13 @@
 // src/app/api/generate-index/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { 
+  getFirstPassSystemPrompt, 
+  getFirstPassUserPrompt, 
+  getSecondPassSystemPrompt, 
+  getSecondPassUserPrompt,
+  validateAndFixFormatting
+} from '@/utils/indexingPrompts';
 
 // Initialize the Anthropic client
 const anthropic = new Anthropic({
@@ -60,35 +67,14 @@ export async function POST(request: NextRequest) {
     
     console.log(`Processing chunk ${chunkIndex + 1}/${totalChunks} (pages ~${startPage}-${endPage}) with length ${processedChunk.length}`);
 
-    const systemPrompt = `You are an expert book indexer for academic books following Chicago Manual of Style guidelines. 
-      You are analyzing a chunk of text to identify potential index terms.
-
-      ${exampleIndex ? `## EXAMPLE INDEX ##
-        Please follow the style and formatting of this example index:
-        ${exampleIndex}` : ''}
-        
-        ${previousEntries.length > 0 ? `## PREVIOUS ENTRIES ##
-        These entries have been identified in previous sections of the document:
-        ${JSON.stringify(previousEntries, null, 2)}
-        
-        Consider these entries when creating new ones to maintain consistency.` : ''}
-
-      ## AUDIENCE INFORMATION ##
-      Audience Level: ${audienceLevel}
-      Index Density: ${indexDensity}
-      Target Audience: ${targetAudience}
-
-      Adjust your indexing approach based on these parameters. For ${audienceLevel} audiences, focus on ${
-        audienceLevel === "high_school" ? "more basic concepts and clearer terminology" : 
-        audienceLevel === "undergraduate" ? "foundational concepts with some specialized terminology" : 
-        "advanced concepts and specialized terminology"
-      }.
-
-      For ${indexDensity} index density, create a ${
-        indexDensity === "broad" ? "more concise index with fewer general entries" : 
-        indexDensity === "medium" ? "balanced index with moderate detail" : 
-        "highly detailed index with specific subentries"
-      }.`;
+    const systemPrompt = getFirstPassSystemPrompt({
+      totalPages,
+      exampleIndex,
+      previousEntries,
+      audienceLevel,
+      indexDensity,
+      targetAudience
+    });
 
     try {
       console.log('Making full indexing API call...');
@@ -100,41 +86,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: "user",
-            content: `Create a professional index for this book excerpt. The excerpt spans approximately pages ${startPage} to ${endPage}.
-
-                ## TASK ##
-                For this FIRST PASS, focus on:
-                1. Identifying ALL potentially index-worthy terms, concepts, people, places, and themes
-                2. Cast a wide net - include many terms even if you're unsure of their importance
-                3. Be generous with your identification - aim for quantity at this stage
-                4. Include specific page numbers based on your estimate of where content appears in this chunk
-                5. Create hierarchical structure for terms that are especially broad (about 30% of the terms should be broad terms).
-                6. Consider explicitly named authors and people as well as abstract concepts and themes that might not be explicitly named
-                7. Try to identify at least 20-30 terms or phrases for this chunk of text. 
-                
-                Remember:
-                - This is just the first pass to gather candidates
-                - Another pass will refine these terms later
-                - Aim for comprehensive coverage rather than perfect organization
-                - Include terms at varying levels of specificity (both general and specific concepts)
-            Your most important instruction: Your response message will not include any text except the JSON. For proper formatting, return ONLY a JSON object with this exact structure:
-            {
-              "entries": [
-                {
-                  "term": "main entry term",
-                  "pageNumbers": "specific page numbers, not just ranges",
-                  "subentries": [
-                    { 
-                      "term": "subentry term", 
-                      "pageNumbers": "specific page numbers" 
-                    }
-                  ]
-                }
-              ]
-            }
-
-            Here's the text to index:
-            ${processedChunk}`
+            content: getFirstPassUserPrompt(startPage, endPage, processedChunk)
           }
         ]
       });
@@ -205,6 +157,9 @@ export async function POST(request: NextRequest) {
               entry && entry.term && entry.term !== 'undefined' && entry.term !== 'unknown term'
             );
             
+            // Validate and fix formatting according to Chicago Manual of Style
+            indexEntries.entries = validateAndFixFormatting(indexEntries.entries);
+            
             console.log(`Parsed ${indexEntries.entries?.length || 0} index entries`);
             
             return NextResponse.json({
@@ -238,6 +193,9 @@ export async function POST(request: NextRequest) {
         indexEntries.entries = indexEntries.entries.filter(entry => 
           entry && entry.term && entry.term !== 'undefined' && entry.term !== 'unknown term'
         );
+        
+        // Validate and fix formatting according to Chicago Manual of Style
+        indexEntries.entries = validateAndFixFormatting(indexEntries.entries);
         
         console.log(`Parsed ${indexEntries.entries?.length || 0} index entries`);
         
@@ -305,14 +263,12 @@ async function handleSecondPass(requestData: any) {
 
     console.log(`Starting second pass refinement for ${allEntries.length} entries in a ${totalPages}-page document`);
     
-    const systemPrompt = `You are an expert academic book indexer following Chicago Manual of Style guidelines.
-
-    ## AUDIENCE INFORMATION ##
-    Audience Level: ${audienceLevel}
-    Index Density: ${indexDensity}
-    Target Audience: ${targetAudience}
-    
-    When refining the index, use these parameters to guide your decisions about which entries to prioritize, combine, or elaborate.`;
+    const systemPrompt = getSecondPassSystemPrompt({
+      totalPages,
+      audienceLevel,
+      indexDensity,
+      targetAudience
+    });
     
     try {
       console.log('Making refinement API call...');
@@ -324,52 +280,12 @@ async function handleSecondPass(requestData: any) {
         messages: [
           {
             role: "user",
-            content: `I need you to refine and improve this raw index for a ${totalPages}-page document.
-
-                ## TASK ##
-                Refine and organize a raw list of index entries to create a professional, coherent index.
-
-                For this refinement phase:
-                1. For this ${totalPages}-page document, create approximately ${Math.round(totalPages)} entries
-                2. Maintain breadth of coverage - preserve most terms from the first pass
-                3. Only remove entries that are truly irrelevant to the book's audience or redundant
-                4. Consolidate related concepts under main entries with appropriate subentries
-                5. Ensure proper hierarchical organization (main entries vs. subentries)
-                6. Standardize terminology and fix inconsistencies
-                7. For concepts that appear on the same page numbers, combine them only when truly related
-                8. Ensure entries are distributed across the document's page range
-                9. Create see/see also cross-references for related terms
-                10. Entries with just one sub-entry should be consolidated into one top-level entry.
-
-                DO NOT over-consolidate entries.
-            
-            ${documentSummary ? `Here is a summary of the document: ${documentSummary}` : ''}
-            
-            ${exampleIndex ? `Please follow the style and format of this example index: ${exampleIndex}` : ''}
-            
-            Here are the raw index entries that need refinement:
-            ${JSON.stringify(allEntries, null, 2)}
-            
-            Please transform these into a high-quality professional index with approximately ${Math.round(totalPages * 0.9)} to ${Math.round(totalPages * 1.1)} entries.
-            
-            Very important instruction: Do not include any text in your response other than the JSON index.
-            Your response must be ONLY a JSON object with this structure:
-            {
-              "entries": [
-                {
-                  "term": "main entry term",
-                  "pageNumbers": "specific page numbers",
-                  "subentries": [
-                    { 
-                      "term": "subentry term", 
-                      "pageNumbers": "specific page numbers" 
-                    }
-                  ]
-                }
-              ]
-            }
-            
-            Do not include any text before or after the JSON.`
+            content: getSecondPassUserPrompt({
+              totalPages,
+              allEntries,
+              documentSummary,
+              exampleIndex
+            })
           }
         ]
       });
@@ -432,15 +348,18 @@ async function handleSecondPass(requestData: any) {
           entry.term.toLowerCase() !== 'unknown term'
         );
         
+        // Validate and fix formatting according to Chicago Manual of Style
+        const validatedEntries = validateAndFixFormatting(filteredEntries);
+        
         // Sort entries alphabetically
-        filteredEntries.sort((a:any, b:any) => {
+        validatedEntries.sort((a:any, b:any) => {
           if (!a.term) return 1;  // Move undefined terms to the end
           if (!b.term) return -1; // Move undefined terms to the end
           return a.term.localeCompare(b.term);
         });
         
         // For each entry, sort its subentries
-        filteredEntries.forEach((entry: any) => {
+        validatedEntries.forEach((entry: any) => {
           if (entry.subentries && entry.subentries.length > 0) {
             entry.subentries.sort((a:any, b:any) => a.term.localeCompare(b.term));
           }
@@ -448,7 +367,7 @@ async function handleSecondPass(requestData: any) {
         
         return NextResponse.json({
           success: true,
-          entries: filteredEntries
+          entries: validatedEntries
         });
         
       } catch (parseError) {

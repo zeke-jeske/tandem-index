@@ -1,95 +1,302 @@
 // src/utils/indexingPrompts.ts
 
+interface IndexEntry {
+  term: string;
+  pageNumbers: string;
+  subentries?: {
+    term: string;
+    pageNumbers: string;
+  }[];
+}
+
 /**
- * Generates a system prompt for the indexing task
+ * Validates and fixes index entries according to Chicago Manual of Style guidelines
  */
-export function getIndexingSystemPrompt(totalPages: number, exampleIndexProvided: boolean = false): string {
-    return `You are a professional book indexer following Chicago Manual of Style guidelines. Your task is to analyze book text and create a comprehensive, hierarchical index that would be useful to readers.
+export function validateAndFixFormatting(entries: IndexEntry[]): IndexEntry[] {
+  return entries.map(entry => {
+    // If entry has subentries, main entry should have no page numbers
+    if (entry.subentries && entry.subentries.length > 0) {
+      entry.pageNumbers = "";
+      
+      // Limit subentries to 20 maximum
+      if (entry.subentries.length > 20) {
+        console.warn(`Entry "${entry.term}" has ${entry.subentries.length} subentries, limiting to 20`);
+        entry.subentries = entry.subentries.slice(0, 20);
+      }
+    }
+    
+    // Ensure proper capitalization (lowercase unless proper noun)
+    if (entry.term && !/^[A-Z]/.test(entry.term)) {
+      // Already lowercase, keep as is
+    } else if (entry.term) {
+      // Check if it's likely a proper noun by checking if it's a name or place
+      const isProperNoun = /^[A-Z][a-z]+(?: [A-Z][a-z]+)*$/.test(entry.term) &&
+                         (entry.term.includes(' ') || entry.term.length > 2);
+      if (!isProperNoun) {
+        entry.term = entry.term.charAt(0).toLowerCase() + entry.term.slice(1);
+      }
+    }
+    
+    return entry;
+  });
+}
+
+/**
+ * Generates the system prompt for the first pass of indexing
+ */
+export function getFirstPassSystemPrompt({
+  totalPages,
+  exampleIndex = '',
+  previousEntries = [],
+  audienceLevel = 'undergraduate',
+  indexDensity = 'medium',
+  targetAudience = ''
+}: {
+  totalPages: number;
+  exampleIndex?: string;
+  previousEntries?: IndexEntry[];
+  audienceLevel?: string;
+  indexDensity?: string;
+  targetAudience?: string;
+}): string {
+  return `You are an expert book indexer for academic books following Chicago Manual of Style guidelines. 
+  You are analyzing a chunk of text to identify potential index terms.
+
+  ## CHICAGO MANUAL OF STYLE INDEXING GUIDELINES ##
   
-  REQUIREMENTS:
-  1. Follow Chicago Manual of Style indexing conventions:
-     - Entries should be lowercase unless they are proper nouns
-     - Use "see" cross-references for synonymous terms
-     - Use "see also" cross-references to direct readers to related terms
-     - Create hierarchical entries with subentries for broader topics
-     - Alphabetize entries ignoring articles and prepositions
+  CONTENT SELECTION:
+  • Focus on the book's emphases; do not index people, events, or places mentioned only in passing
+  • Think in terms of topics that are not simply tied to specific word occurrences - become a guide pointing out aspects not readily visible in headings
+  • Index the body of the text only—not endorsements, dedication, table of contents, acknowledgments, or bibliographies
+  • Index a footnote ONLY if it contributes significantly to the discussion (avoid footnotes unless absolutely necessary)
+  • Key entries should be nouns, not adjectives or adverbs (e.g., avoid "diverse" - it leaves readers wondering "diverse what?")
+  • Target approximately ${totalPages} main entries for this ${totalPages}-page document (roughly 1 main entry per page)
   
-  2. Page Number Guidelines:
-     - The book has ${totalPages} total pages
-     - Assign specific page numbers within appropriate ranges
-     - Avoid excessive page ranges longer than 3 pages
-     - Multiple individual page references are preferred over ranges when possible
-     - Numbers must be specific integers, not ranges like "180-195"
+  STRUCTURE AND HIERARCHY:
+  • Use only two levels of entries—the primary entry and one level of subentry underneath
+  • Limit subentries to maximum 20 per main entry (ideally keep much lower, 5-15 subentries)
+  • If a term would require more than 20 subentries, split it into multiple related entries
+  • Entries with subentries should NOT include page numbers directly - only subentries get page numbers
+  • Entries without subentries should include page numbers
+  • Subentries may be descriptive words or phrases about the key entry
   
-  3. Entry Selection:
-     - Focus on key concepts, terms, people, places, and themes
-     - Be selective - only include truly significant terms
-     - Create appropriate hierarchical relationships
-     - Avoid trivial or passing mentions
-     - Consider what would be most useful to the intended audience
+  FORMAT:
+  • Do not capitalize index entries unless they are proper nouns capitalized in the body text
+  • Use specific page numbers, not ranges when possible (e.g., "62, 64, 70" rather than "62-70")
+  • For inclusive numbers: less than 100 include all digits (36-37), 101-109 only include changed part (107-9), 110-199 include two digits (115-16)
+  • Avoid using f. or ff. in an index
+  • For names, spell out first name rather than using initials unless person is known by initials
+  • Avoid indexing people mentioned only by first name or for illustration purposes
+  • Use word-by-word alphabetizing system
+  • Articles, prepositions, conjunctions are not used for alphabetizing if at beginning of subentry
   
-  ${exampleIndexProvided ? `4. Follow the style and structure of the provided example index
-     - Match the formatting conventions shown
-     - Use similar hierarchical organization
-     - Create a similar density of entries and subentries` : ''}
+  CROSS-REFERENCES:
+  • Use "See" cross-references for synonymous terms or preferred terminology
+  • Use "See also" cross-references to direct readers to related terms
+  • Format: "term, page numbers. See also related term"
+
+  ${exampleIndex ? `## EXAMPLE INDEX ##
+    Please follow the style and formatting of this example index:
+    ${exampleIndex}` : ''}
+    
+    ${previousEntries.length > 0 ? `## PREVIOUS ENTRIES ##
+    These entries have been identified in previous sections of the document:
+    ${JSON.stringify(previousEntries, null, 2)}
+    
+    Consider these entries when creating new ones to maintain consistency.` : ''}
+
+  ## AUDIENCE INFORMATION ##
+  Audience Level: ${audienceLevel}
+  Index Density: ${indexDensity}
+  Target Audience: ${targetAudience}
+
+  Adjust your indexing approach based on these parameters. For ${audienceLevel} audiences, focus on ${
+    audienceLevel === "high_school" ? "more basic concepts and clearer terminology" : 
+    audienceLevel === "undergraduate" ? "foundational concepts with some specialized terminology" : 
+    "advanced concepts and specialized terminology"
+  }.
+
+  For ${indexDensity} index density, create a ${
+    indexDensity === "broad" ? "more concise index with fewer general entries" : 
+    indexDensity === "medium" ? "balanced index with moderate detail" : 
+    "highly detailed index with specific subentries"
+  }.`;
+}
+
+/**
+ * Generates the user prompt for the first pass of indexing
+ */
+export function getFirstPassUserPrompt(startPage: number, endPage: number, chunk: string): string {
+  return `Create a professional index for this book excerpt. The excerpt spans approximately pages ${startPage} to ${endPage}.
+
+  ## TASK ##
+  For this FIRST PASS, focus on:
+  1. Identifying index-worthy NOUNS (concepts, people, places, themes) - avoid adjectives and adverbs
+  2. Focus on book's emphases - skip people, events, or places mentioned only in passing
+  3. Include terms that represent substantive discussions, not just word occurrences
+  4. Include specific page numbers based on your estimate of where content appears in this chunk
+  5. Create hierarchical structure for broader terms (limit subentries to max 20, ideally 5-15)
+  6. Consider key figures, methodologies, and concepts central to the academic field
+  7. Aim for quality over quantity - target meaningful terms that readers would actually look up
   
-  FORMAT YOUR RESPONSE AS JSON:
+  CRITICAL FORMATTING RULES:
+  - Entries WITH subentries: NO page numbers on main entry, only on subentries
+  - Entries WITHOUT subentries: include page numbers on main entry
+  - Keep subentries under 20 per main entry (preferably much lower)
+  - Use specific page numbers, not ranges (e.g., "62, 64, 70" not "62-70")
+  - Do not capitalize entries unless they are proper nouns
+  - Focus on substantive nouns, not descriptive adjectives
+
+  Your most important instruction: Your response message will not include any text except the JSON. For proper formatting, return ONLY a JSON object with this exact structure:
   {
     "entries": [
       {
-        "term": "example term",
-        "pageNumbers": "62, 64, 70",
+        "term": "main entry with subentries",
+        "pageNumbers": "",
         "subentries": [
-          {
-            "term": "specific aspect",
-            "pageNumbers": "64"
+          { 
+            "term": "subentry one", 
+            "pageNumbers": "42, 67" 
+          },
+          { 
+            "term": "subentry two", 
+            "pageNumbers": "55" 
           }
         ]
       },
       {
-        "term": "another term",
-        "pageNumbers": "59, 73"
+        "term": "main entry without subentries",
+        "pageNumbers": "23, 45, 78"
       }
     ]
-  }`;
+  }
+
+  Here's the text to index:
+  ${chunk}`;
+}
+
+/**
+ * Generates the system prompt for the second pass of indexing
+ */
+export function getSecondPassSystemPrompt({
+  totalPages,
+  audienceLevel = 'undergraduate',
+  indexDensity = 'medium',
+  targetAudience = ''
+}: {
+  totalPages: number;
+  audienceLevel?: string;
+  indexDensity?: string;
+  targetAudience?: string;
+}): string {
+  return `You are an expert academic book indexer following Chicago Manual of Style guidelines.
+
+  ## CHICAGO MANUAL OF STYLE INDEXING GUIDELINES ##
+  
+  CONTENT REFINEMENT:
+  • Focus on the book's emphases; remove people, events, or places mentioned only in passing
+  • Ensure entries are substantive nouns, not adjectives or adverbs
+  • Target approximately ${totalPages} main entries for this ${totalPages}-page document (roughly 1 main entry per page)
+  • Remove entries that are not truly significant to the book's themes
+  
+  STRUCTURE AND HIERARCHY:
+  • Use only two levels of entries—the primary entry and one level of subentry underneath
+  • Limit subentries to maximum 20 per main entry (ideally keep much lower, 5-15 subentries)
+  • If a term would require more than 20 subentries, split it into multiple related entries
+  • Entries with subentries should NOT include page numbers directly - only subentries get page numbers
+  • Entries without subentries should include page numbers
+  • Consolidate entries with just one sub-entry into a single top-level entry
+  
+  FORMAT:
+  • Do not capitalize index entries unless they are proper nouns capitalized in the body text
+  • Use specific page numbers, not ranges when possible (e.g., "62, 64, 70" rather than "62-70")
+  • For inclusive numbers: less than 100 include all digits (36-37), 101-109 only include changed part (107-9), 110-199 include two digits (115-16)
+  • For names, spell out first name rather than using initials unless person is known by initials
+  • Use word-by-word alphabetizing system
+  
+  CROSS-REFERENCES:
+  • Use "See" cross-references for synonymous terms or preferred terminology
+  • Use "See also" cross-references to direct readers to related terms
+  • Format: "term, page numbers. See also related term"
+
+  ## AUDIENCE INFORMATION ##
+  Audience Level: ${audienceLevel}
+  Index Density: ${indexDensity}
+  Target Audience: ${targetAudience}
+  
+  When refining the index, use these parameters to guide your decisions about which entries to prioritize, combine, or elaborate.`;
+}
+
+/**
+ * Generates the user prompt for the second pass of indexing
+ */
+export function getSecondPassUserPrompt({
+  totalPages,
+  allEntries,
+  documentSummary = '',
+  exampleIndex = ''
+}: {
+  totalPages: number;
+  allEntries: IndexEntry[];
+  documentSummary?: string;
+  exampleIndex?: string;
+}): string {
+  return `I need you to refine and improve this raw index for a ${totalPages}-page document.
+
+  ## TASK ##
+  For this refinement phase:
+  1. For this ${totalPages}-page document, create approximately ${Math.round(totalPages)} main entries
+  2. Remove entries that are not substantive nouns (eliminate adjectives, adverbs, passing mentions)
+  3. Ensure no main entry has more than 20 subentries (ideally 5-15, split if necessary)
+  4. Consolidate related concepts under main entries with appropriate subentries
+  5. Apply Chicago Manual of Style formatting rules consistently
+  6. Standardize terminology and fix inconsistencies
+  7. Ensure entries represent the book's emphases, not just word occurrences
+  8. Create "See" and "See also" cross-references for related terms
+  9. Entries with just one sub-entry should be consolidated into one top-level entry
+  10. Ensure entries are meaningful terms readers would actually look up
+
+  CRITICAL FORMATTING RULES:
+  - Entries WITH subentries: NO page numbers on main entry, only on subentries
+  - Entries WITHOUT subentries: include page numbers on main entry
+  - Maximum 20 subentries per main entry (preferably much lower)
+  - Use specific page numbers, not ranges (e.g., "62, 64, 70" not "62-70")
+  - Do not capitalize entries unless they are proper nouns
+  - Focus on substantive nouns, not descriptive adjectives
+  
+  ${documentSummary ? `Here is a summary of the document: ${documentSummary}` : ''}
+  
+  ${exampleIndex ? `Please follow the style and format of this example index: ${exampleIndex}` : ''}
+  
+  Here are the raw index entries that need refinement:
+  ${JSON.stringify(allEntries, null, 2)}
+  
+  Please transform these into a high-quality professional index with approximately ${Math.round(totalPages * 0.9)} to ${Math.round(totalPages * 1.1)} entries.
+  
+  Very important instruction: Do not include any text in your response other than the JSON index.
+  Your response must be ONLY a JSON object with this structure:
+  {
+    "entries": [
+      {
+        "term": "main entry with subentries",
+        "pageNumbers": "",
+        "subentries": [
+          { 
+            "term": "subentry one", 
+            "pageNumbers": "42, 67" 
+          },
+          { 
+            "term": "subentry two", 
+            "pageNumbers": "55" 
+          }
+        ]
+      },
+      {
+        "term": "main entry without subentries",
+        "pageNumbers": "23, 45, 78"
+      }
+    ]
   }
   
-  /**
-   * Generates a prompt for the example index
-   */
-  export function getExampleIndexPrompt(exampleIndex: string): string {
-    return `Here is an example of the desired index format and style. Use this as a reference for creating your index:
-  
-  ${exampleIndex}
-  
-  The new index you create should follow a similar style, format, and density of entries as this example. Pay attention to the use of subentries, cross-references, and page number formatting.`;
-  }
-  
-  /**
-   * Generates a full index generation prompt
-   */
-  export function getFullIndexGenerationPrompt(
-    bookChunk: string, 
-    chunkIndex: number, 
-    totalChunks: number, 
-    pageRange: { start: number, end: number },
-    previousEntries: string = ''
-  ): string {
-    return `Here is chunk ${chunkIndex + 1} of ${totalChunks} from the book manuscript:
-  
-  ${bookChunk}
-  
-  This chunk covers approximately pages ${pageRange.start} to ${pageRange.end}.
-  
-  Please analyze this text section and identify key index entries with appropriate page numbers within this range.
-  
-  ${previousEntries ? `Consider these entries that have already been identified in previous chunks:
-  ${previousEntries}` : ''}
-  
-  Remember to:
-  1. Only include truly significant and meaningful terms
-  2. Create a hierarchical structure with main entries and subentries where appropriate
-  3. Use cross-references with "see" and "see also" where helpful
-  4. Assign realistic page numbers within the estimated range ${pageRange.start}-${pageRange.end}
-  5. Format your response as JSON according to the specified structure`;
-  }
+  Do not include any text before or after the JSON.`;
+}
