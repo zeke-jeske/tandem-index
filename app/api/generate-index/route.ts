@@ -73,11 +73,14 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      console.log('Making full indexing API call...');
       
       const fullResponse = await anthropic.messages.create({
-        model: "claude-sonnet-4-0",
-        max_tokens: 5000,
+        model: "claude-sonnet-4-20250514", // Updated to correct model name
+        max_tokens: 15000, // Increased from 5000 for comprehensive indexing
+        thinking: {
+          type: "enabled",
+          budget_tokens: 8000 // Allow substantial thinking for complex indexing decisions
+        },
         system: systemPrompt,
         messages: [
           {
@@ -89,13 +92,17 @@ export async function POST(request: NextRequest) {
       
       console.log('Response type:', typeof fullResponse);
       
-      // Extract the response content
+      // Extract thinking content and response text
+      let thinkingContent = '';
       let responseText = '';
+      
       if (Array.isArray(fullResponse.content)) {
         for (const contentBlock of fullResponse.content) {
-          if (contentBlock.type === 'text') {
+          if (contentBlock.type === 'thinking') {
+            thinkingContent = contentBlock.thinking;
+            console.log(`🧠 Claude's thinking process for chunk ${chunkIndex + 1}:`, thinkingContent);
+          } else if (contentBlock.type === 'text') {
             responseText = contentBlock.text;
-            break;
           }
         }
       }
@@ -270,8 +277,12 @@ async function handleSecondPass(requestData: any) {
       console.log('Making refinement API call...');
       
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-0",
-        max_tokens: 8000,
+        model: "claude-sonnet-4-20250514", // Updated to correct model name
+        max_tokens: 20000, // Increased from 8000 for comprehensive indexing - second pass needs more space
+        thinking: {
+          type: "enabled",
+          budget_tokens: 10000 // Allow more thinking for comprehensive refinement decisions
+        },
         system: systemPrompt,
         messages: [
           {
@@ -286,13 +297,17 @@ async function handleSecondPass(requestData: any) {
         ]
       });
       
-      // Extract the response content
+      // Extract thinking content and response text
+      let thinkingContent = '';
       let responseText = '';
+      
       if (Array.isArray(response.content)) {
         for (const contentBlock of response.content) {
-          if (contentBlock.type === 'text') {
+          if (contentBlock.type === 'thinking') {
+            thinkingContent = contentBlock.thinking;
+            console.log(`🧠 Claude's thinking process for second pass refinement:`, thinkingContent);
+          } else if (contentBlock.type === 'text') {
             responseText = contentBlock.text;
-            break;
           }
         }
       }

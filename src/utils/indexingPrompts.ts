@@ -54,7 +54,7 @@ export function getFirstPassSystemPrompt({
      acknowledgments, or bibliographies. Readers won't be looking for this information in the index.
   • Do not index footnotes unless they contribute significantly to the discussion.
   • Key entries should be nouns, not adjectives or adverbs (e.g., avoid "diverse" - it leaves readers wondering "diverse what?")
-  • Target approximately ${totalPages} main entries for this ${totalPages}-page document (roughly 1 main entry per page).
+  • Target approximately ${Math.round(totalPages*0.7)} main entries for this ${totalPages}-page document.
      This will create a balanced index so that readers don't get overwhelmed, but still have necessary info.
   
   STRUCTURE AND HIERARCHY:
