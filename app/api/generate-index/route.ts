@@ -53,19 +53,15 @@ export async function POST(request: NextRequest) {
       );
     }
   
-    // Check if the chunk is too large
-    let processedChunk = chunk;
-    if (processedChunk.length > 80000) {  
-      console.log(`Chunk size (${processedChunk.length} chars) exceeds safe limit. Truncating...`);
-      processedChunk = processedChunk.substring(0, 80000);
-    }
-  
+    // REMOVED: No more arbitrary truncation!
+    // The chunking should be handled properly in the frontend
+    
     // Calculate the approximate page range for this chunk
     const pagesPerChunk = totalPages / totalChunks;
     const startPage = Math.max(1, Math.floor(chunkIndex * pagesPerChunk));
     const endPage = Math.min(totalPages, Math.floor((chunkIndex + 1) * pagesPerChunk));
     
-    console.log(`Processing chunk ${chunkIndex + 1}/${totalChunks} (pages ~${startPage}-${endPage}) with length ${processedChunk.length}`);
+    console.log(`Processing chunk ${chunkIndex + 1}/${totalChunks} (pages ~${startPage}-${endPage}) with length ${chunk.length}`);
 
     const systemPrompt = getFirstPassSystemPrompt({
       totalPages,
@@ -80,13 +76,13 @@ export async function POST(request: NextRequest) {
       console.log('Making full indexing API call...');
       
       const fullResponse = await anthropic.messages.create({
-        model: "claude-3-7-sonnet-20250219",
+        model: "claude-sonnet-4-0",
         max_tokens: 5000,
         system: systemPrompt,
         messages: [
           {
             role: "user",
-            content: getFirstPassUserPrompt(startPage, endPage, processedChunk)
+            content: getFirstPassUserPrompt(startPage, endPage, chunk)
           }
         ]
       });
@@ -274,7 +270,7 @@ async function handleSecondPass(requestData: any) {
       console.log('Making refinement API call...');
       
       const response = await anthropic.messages.create({
-        model: "claude-3-7-sonnet-20250219",
+        model: "claude-sonnet-4-0",
         max_tokens: 8000,
         system: systemPrompt,
         messages: [

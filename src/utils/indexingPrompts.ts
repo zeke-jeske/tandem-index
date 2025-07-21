@@ -15,27 +15,7 @@ interface IndexEntry {
 export function validateAndFixFormatting(entries: IndexEntry[]): IndexEntry[] {
   return entries.map(entry => {
     // If entry has subentries, main entry should have no page numbers
-    if (entry.subentries && entry.subentries.length > 0) {
-      entry.pageNumbers = "";
-      
-      // Limit subentries to 20 maximum
-      if (entry.subentries.length > 20) {
-        console.warn(`Entry "${entry.term}" has ${entry.subentries.length} subentries, limiting to 20`);
-        entry.subentries = entry.subentries.slice(0, 20);
-      }
-    }
-    
-    // Ensure proper capitalization (lowercase unless proper noun)
-    if (entry.term && !/^[A-Z]/.test(entry.term)) {
-      // Already lowercase, keep as is
-    } else if (entry.term) {
-      // Check if it's likely a proper noun by checking if it's a name or place
-      const isProperNoun = /^[A-Z][a-z]+(?: [A-Z][a-z]+)*$/.test(entry.term) &&
-                         (entry.term.includes(' ') || entry.term.length > 2);
-      if (!isProperNoun) {
-        entry.term = entry.term.charAt(0).toLowerCase() + entry.term.slice(1);
-      }
-    }
+    if (entry.subentries && entry.subentries.length > 0) entry.pageNumbers = "";
     
     return entry;
   });
@@ -60,25 +40,31 @@ export function getFirstPassSystemPrompt({
   targetAudience?: string;
 }): string {
   return `You are an expert book indexer for academic books following Chicago Manual of Style guidelines. 
-  You are analyzing a chunk of text to identify potential index terms.
+  You are analyzing a chunk of text to identify potential index terms. Use your deep knowledge of Chicago
+  Standards, and you can also rely on the shortened guidelines below. 
 
   ## CHICAGO MANUAL OF STYLE INDEXING GUIDELINES ##
   
   CONTENT SELECTION:
-  • Focus on the book's emphases; do not index people, events, or places mentioned only in passing
-  • Think in terms of topics that are not simply tied to specific word occurrences - become a guide pointing out aspects not readily visible in headings
-  • Index the body of the text only—not endorsements, dedication, table of contents, acknowledgments, or bibliographies
-  • Index a footnote ONLY if it contributes significantly to the discussion (avoid footnotes unless absolutely necessary)
+  • Focus on the book's emphases; do not index people, events, or places mentioned only in passing, 
+      as this will make the index too broad and not useful for the book's audience.
+  • Any reader can find information in headings. You should aim to be a guide, pointing out aspects
+      that are not readily visible on first glance.
+  • Index the body of the text only, not endorsements, dedication, table of contents, 
+     acknowledgments, or bibliographies. Readers won't be looking for this information in the index.
+  • Do not index footnotes unless they contribute significantly to the discussion.
   • Key entries should be nouns, not adjectives or adverbs (e.g., avoid "diverse" - it leaves readers wondering "diverse what?")
-  • Target approximately ${totalPages} main entries for this ${totalPages}-page document (roughly 1 main entry per page)
+  • Target approximately ${totalPages} main entries for this ${totalPages}-page document (roughly 1 main entry per page).
+     This will create a balanced index so that readers don't get overwhelmed, but still have necessary info.
   
   STRUCTURE AND HIERARCHY:
   • Use only two levels of entries—the primary entry and one level of subentry underneath
   • Limit subentries to maximum 20 per main entry (ideally keep much lower, 5-15 subentries)
-  • If a term would require more than 20 subentries, split it into multiple related entries
-  • Entries with subentries should NOT include page numbers directly - only subentries get page numbers
+      Otherwise, the reader must spend time searching through long lists of subentries.
+  • In the same vein, if a term would require more than 20 subentries, split it into 
+     multiple related entries.
   • Entries without subentries should include page numbers
-  • Subentries may be descriptive words or phrases about the key entry
+  • Subentries may be descriptive words or phrases about the key entry 
   
   FORMAT:
   • Do not capitalize index entries unless they are proper nouns capitalized in the body text
@@ -127,7 +113,9 @@ export function getFirstPassSystemPrompt({
  * Generates the user prompt for the first pass of indexing
  */
 export function getFirstPassUserPrompt(startPage: number, endPage: number, chunk: string): string {
-  return `Create a professional index for this book excerpt. The excerpt spans approximately pages ${startPage} to ${endPage}.
+  return `Create a professional index for this book excerpt. Go above and beyond to make the index 
+  as comprehensive and relevant as possible for the book's audience.
+  The excerpt spans approximately pages ${startPage} to ${endPage}.
 
   ## TASK ##
   For this FIRST PASS, focus on:
@@ -143,9 +131,9 @@ export function getFirstPassUserPrompt(startPage: number, endPage: number, chunk
   - Entries WITH subentries: NO page numbers on main entry, only on subentries
   - Entries WITHOUT subentries: include page numbers on main entry
   - Keep subentries under 20 per main entry (preferably much lower)
-  - Use specific page numbers, not ranges (e.g., "62, 64, 70" not "62-70")
-  - Do not capitalize entries unless they are proper nouns
-  - Focus on substantive nouns, not descriptive adjectives
+  - Do not capitalize entries unless they are proper nouns capitalized in the body text 
+     (e.g. "United States" or "John Doe")
+  - Focus on substantive nouns, not descriptive adjectives (e.g. "diverse" is not a good entry)
 
   Your most important instruction: Your response message will not include any text except the JSON. For proper formatting, return ONLY a JSON object with this exact structure:
   {
@@ -190,6 +178,8 @@ export function getSecondPassSystemPrompt({
   targetAudience?: string;
 }): string {
   return `You are an expert academic book indexer following Chicago Manual of Style guidelines.
+  Go above and beyond to make the index as comprehensive and relevant as possible for the book's audience.
+  Use your deep knowledge of Chicago Standards, and you can also rely on the shortened guidelines below. 
 
   ## CHICAGO MANUAL OF STYLE INDEXING GUIDELINES ##
   
@@ -260,8 +250,7 @@ export function getSecondPassUserPrompt({
   - Entries WITH subentries: NO page numbers on main entry, only on subentries
   - Entries WITHOUT subentries: include page numbers on main entry
   - Maximum 20 subentries per main entry (preferably much lower)
-  - Use specific page numbers, not ranges (e.g., "62, 64, 70" not "62-70")
-  - Do not capitalize entries unless they are proper nouns
+  - Do not capitalize entries unless they are proper nouns capitalized in the body text
   - Focus on substantive nouns, not descriptive adjectives
   
   ${documentSummary ? `Here is a summary of the document: ${documentSummary}` : ''}

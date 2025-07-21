@@ -30,6 +30,7 @@ const IndexGenerator = (): React.ReactElement => {
   const [indexDensity, setIndexDensity] = useState<number>(1); // 0=broad, 1=medium, 2=detailed
   const [targetAudience, setTargetAudience] = useState<string>('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [sortMethod, setSortMethod] = useState<'alphabetical' | 'pageNumber'>('alphabetical');
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>({
     currentChunk: 0,
     totalChunks: 0,
@@ -554,6 +555,10 @@ const IndexGenerator = (): React.ReactElement => {
   
   // Format index entries for display
   const formatIndexEntries = () => {
+    if (sortMethod === 'pageNumber') {
+      return formatIndexEntriesByPageNumber();
+    }
+    
     return indexEntries.map((entry, index) => (
       <div key={index} className="mb-2">
         <div className="flex">
@@ -570,6 +575,66 @@ const IndexGenerator = (): React.ReactElement => {
             ))}
           </div>
         )}
+      </div>
+    ));
+  };
+
+  // Format index entries sorted by page number
+  const formatIndexEntriesByPageNumber = () => {
+    // Create a flattened list of all entries with their page numbers
+    const flattenedEntries: Array<{
+      displayText: string;
+      pageNumbers: string;
+      numericPages: number[];
+    }> = [];
+
+    indexEntries.forEach(entry => {
+      // Add main entry if it has page numbers
+      if (entry.pageNumbers && entry.pageNumbers.trim() !== '') {
+        const numericPages = extractPageNumbers(entry.pageNumbers)
+          .filter(p => typeof p === 'number') as number[];
+        
+        if (numericPages.length > 0) {
+          flattenedEntries.push({
+            displayText: entry.term,
+            pageNumbers: entry.pageNumbers,
+            numericPages: numericPages
+          });
+        }
+      }
+
+      // Add subentries
+      if (entry.subentries && entry.subentries.length > 0) {
+        entry.subentries.forEach(subentry => {
+          if (subentry.pageNumbers && subentry.pageNumbers.trim() !== '') {
+            const numericPages = extractPageNumbers(subentry.pageNumbers)
+              .filter(p => typeof p === 'number') as number[];
+            
+            if (numericPages.length > 0) {
+              flattenedEntries.push({
+                displayText: `${entry.term} > ${subentry.term}`,
+                pageNumbers: subentry.pageNumbers,
+                numericPages: numericPages
+              });
+            }
+          }
+        });
+      }
+    });
+
+    // Sort by the first page number of each entry
+    flattenedEntries.sort((a, b) => {
+      const aFirstPage = Math.min(...a.numericPages);
+      const bFirstPage = Math.min(...b.numericPages);
+      return aFirstPage - bFirstPage;
+    });
+
+    return flattenedEntries.map((entry, index) => (
+      <div key={index} className="mb-2">
+        <div className="flex">
+          <div className="flex-grow font-medium">{entry.displayText}</div>
+          <div className="text-gray-600">{entry.pageNumbers}</div>
+        </div>
       </div>
     ));
   };
@@ -832,9 +897,25 @@ const IndexGenerator = (): React.ReactElement => {
           <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-800">Your Index</h2>
-              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                {indexEntries.length} Main Entries
-              </span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="sort-method" className="text-sm font-medium text-gray-700">
+                    Sort by:
+                  </label>
+                  <select
+                    id="sort-method"
+                    value={sortMethod}
+                    onChange={(e) => setSortMethod(e.target.value as 'alphabetical' | 'pageNumber')}
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="alphabetical">Alphabetical</option>
+                    <option value="pageNumber">Page Number</option>
+                  </select>
+                </div>
+                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                  {indexEntries.length} Main Entries
+                </span>
+              </div>
             </div>
             
             {processingStatus.error && (
@@ -866,20 +947,75 @@ const IndexGenerator = (): React.ReactElement => {
               
               <button
                 onClick={() => {
-                  // Download as text file
-                  const content = indexEntries.map(entry => {
-                    let text = `${entry.term}, ${entry.pageNumbers}`;
-                    if (entry.subentries && entry.subentries.length > 0) {
-                      text += '\n' + entry.subentries.map(sub => `  - ${sub.term}, ${sub.pageNumbers}`).join('\n');
-                    }
-                    return text;
-                  }).join('\n\n');
+                  // Download as text file based on current sort method
+                  let content = '';
+                  
+                  if (sortMethod === 'pageNumber') {
+                    // Create flattened entries for page number sorting
+                    const flattenedEntries: Array<{
+                      displayText: string;
+                      pageNumbers: string;
+                      numericPages: number[];
+                    }> = [];
+
+                    indexEntries.forEach(entry => {
+                      // Add main entry if it has page numbers
+                      if (entry.pageNumbers && entry.pageNumbers.trim() !== '') {
+                        const numericPages = extractPageNumbers(entry.pageNumbers)
+                          .filter(p => typeof p === 'number') as number[];
+                        
+                        if (numericPages.length > 0) {
+                          flattenedEntries.push({
+                            displayText: entry.term,
+                            pageNumbers: entry.pageNumbers,
+                            numericPages: numericPages
+                          });
+                        }
+                      }
+
+                      // Add subentries
+                      if (entry.subentries && entry.subentries.length > 0) {
+                        entry.subentries.forEach(subentry => {
+                          if (subentry.pageNumbers && subentry.pageNumbers.trim() !== '') {
+                            const numericPages = extractPageNumbers(subentry.pageNumbers)
+                              .filter(p => typeof p === 'number') as number[];
+                            
+                            if (numericPages.length > 0) {
+                              flattenedEntries.push({
+                                displayText: `${entry.term} > ${subentry.term}`,
+                                pageNumbers: subentry.pageNumbers,
+                                numericPages: numericPages
+                              });
+                            }
+                          }
+                        });
+                      }
+                    });
+
+                    // Sort by the first page number of each entry
+                    flattenedEntries.sort((a, b) => {
+                      const aFirstPage = Math.min(...a.numericPages);
+                      const bFirstPage = Math.min(...b.numericPages);
+                      return aFirstPage - bFirstPage;
+                    });
+
+                    content = flattenedEntries.map(entry => `${entry.displayText}, ${entry.pageNumbers}`).join('\n');
+                  } else {
+                    // Traditional alphabetical format
+                    content = indexEntries.map(entry => {
+                      let text = `${entry.term}, ${entry.pageNumbers}`;
+                      if (entry.subentries && entry.subentries.length > 0) {
+                        text += '\n' + entry.subentries.map(sub => `  - ${sub.term}, ${sub.pageNumbers}`).join('\n');
+                      }
+                      return text;
+                    }).join('\n\n');
+                  }
                   
                   const blob = new Blob([content], { type: 'text/plain' });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = 'book-index.txt';
+                  a.download = `book-index-${sortMethod}.txt`;
                   document.body.appendChild(a);
                   a.click();
                   document.body.removeChild(a);
