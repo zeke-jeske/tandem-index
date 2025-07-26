@@ -75,11 +75,11 @@ export async function POST(request: NextRequest) {
     try {
       
       const fullResponse = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514", // Updated to correct model name
-        max_tokens: 15000, // Increased from 5000 for comprehensive indexing
+        model: "claude-opus-4-20250514", 
+        max_tokens: 15000, // lots and lots
         thinking: {
           type: "enabled",
-          budget_tokens: 8000 // Allow substantial thinking for complex indexing decisions
+          budget_tokens: 8000 // yes yes yes give me thinking
         },
         system: systemPrompt,
         messages: [
@@ -277,7 +277,7 @@ async function handleSecondPass(requestData: any) {
       console.log('Making refinement API call...');
       
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514", // Updated to correct model name
+        model: "claude-opus-4-20250514", // Updated to correct model name
         max_tokens: 20000, // Increased from 8000 for comprehensive indexing - second pass needs more space
         thinking: {
           type: "enabled",

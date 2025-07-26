@@ -33,6 +33,16 @@ const Navigation = () => {
               Verification
             </Link>
             <Link
+              href="/compare"
+              className={`${
+                pathname === '/compare'
+                  ? 'text-navy border-b-2 border-navy'
+                  : 'text-gray-500 hover:text-gray-700'
+              } px-3 py-2 text-1.5rem font-medium`}
+            >
+              Compare Indexes
+            </Link>
+            <Link
               href="/generator"
               className={`${
                 pathname === '/generator'
@@ -52,12 +62,22 @@ const Navigation = () => {
           <Link
             href="/verify"
             className={`${
-              pathname === '/'
+              pathname === '/verify'
                 ? 'bg-indigo-50 text-indigo-600'
                 : 'text-gray-600 hover:bg-gray-50'
             } flex-1 py-2 text-center text-sm font-medium`}
           >
             Verification
+          </Link>
+          <Link
+            href="/compare"
+            className={`${
+              pathname === '/compare'
+                ? 'bg-indigo-50 text-indigo-600'
+                : 'text-gray-600 hover:bg-gray-50'
+            } flex-1 py-2 text-center text-sm font-medium`}
+          >
+            Compare
           </Link>
           <Link
             href="/generator"
@@ -67,7 +87,7 @@ const Navigation = () => {
                 : 'text-gray-600 hover:bg-gray-50'
             } flex-1 py-2 text-center text-sm font-medium`}
           >
-            Generate Index
+            Generate
           </Link>
         </div>
       </div>

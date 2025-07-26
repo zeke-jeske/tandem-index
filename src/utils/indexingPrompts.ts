@@ -17,8 +17,101 @@ export function validateAndFixFormatting(entries: IndexEntry[]): IndexEntry[] {
     // If entry has subentries, main entry should have no page numbers
     if (entry.subentries && entry.subentries.length > 0) entry.pageNumbers = "";
     
+    // Format page ranges for main entry
+    if (entry.pageNumbers) {
+      entry.pageNumbers = formatPageRanges(entry.pageNumbers);
+    }
+    
+    // Format page ranges for subentries
+    if (entry.subentries) {
+      entry.subentries = entry.subentries.map(subentry => ({
+        ...subentry,
+        pageNumbers: formatPageRanges(subentry.pageNumbers)
+      }));
+    }
+    
     return entry;
   });
+}
+
+/**
+ * Formats page numbers according to Chicago Manual of Style guidelines
+ * Converts "45, 46, 47, 48" to "45-48" and handles inclusive numbering rules
+ */
+export function formatPageRanges(pageStr: string): string {
+  if (!pageStr || pageStr.trim() === '') return pageStr;
+  
+  // Split by commas and extract individual pages
+  const parts = pageStr.split(',').map(part => part.trim());
+  const pages: number[] = [];
+  const nonNumeric: string[] = [];
+  
+  // Separate numeric pages from cross-references
+  parts.forEach(part => {
+    if (part.toLowerCase().includes('see')) {
+      nonNumeric.push(part);
+    } else {
+      const num = parseInt(part, 10);
+      if (!isNaN(num)) {
+        pages.push(num);
+      } else {
+        nonNumeric.push(part);
+      }
+    }
+  });
+  
+  if (pages.length === 0) return pageStr;
+  
+  // Sort pages
+  pages.sort((a, b) => a - b);
+  
+  // Group consecutive pages into ranges
+  const ranges: string[] = [];
+  let rangeStart = pages[0];
+  let rangeEnd = pages[0];
+  
+  for (let i = 1; i < pages.length; i++) {
+    if (pages[i] === rangeEnd + 1) {
+      // Consecutive page - extend the current range
+      rangeEnd = pages[i];
+    } else {
+      // Non-consecutive - finalize the current range
+      ranges.push(formatSingleRange(rangeStart, rangeEnd));
+      rangeStart = pages[i];
+      rangeEnd = pages[i];
+    }
+  }
+  
+  // Add the final range
+  ranges.push(formatSingleRange(rangeStart, rangeEnd));
+  
+  // Combine with non-numeric parts
+  const allParts = [...ranges, ...nonNumeric];
+  return allParts.join(', ');
+}
+
+/**
+ * Formats a single page range according to Chicago Manual of Style inclusive numbering
+ */
+function formatSingleRange(start: number, end: number): string {
+  if (start === end) {
+    return start.toString();
+  }
+  
+  // Chicago Manual of Style inclusive numbering rules:
+  if (start < 100 && end < 100) {
+    // Less than 100: include all digits (36-37)
+    return `${start}-${end}`;
+  } else if (start >= 101 && start <= 109 && end >= 101 && end <= 109) {
+    // 101-109: only include changed part (107-9)
+    return `${start}-${end.toString().slice(-1)}`;
+  } else if (start >= 110 && start < 200 && end >= 110 && end < 200) {
+    // 110-199: include two digits (115-16)
+    return `${start}-${end.toString().slice(-2)}`;
+  } else {
+    // For larger numbers or cross-century ranges, include all digits
+    return `${start}-${end}`;
+  }
 }
 
 /**
@@ -68,7 +161,6 @@ export function getFirstPassSystemPrompt({
   
   FORMAT:
   • Do not capitalize index entries unless they are proper nouns capitalized in the body text
-  • Use specific page numbers, not ranges when possible (e.g., "62, 64, 70" rather than "62-70")
   • For inclusive numbers: less than 100 include all digits (36-37), 101-109 only include changed part (107-9), 110-199 include two digits (115-16)
   • Avoid using f. or ff. in an index
   • For names, spell out first name rather than using initials unless person is known by initials
@@ -113,16 +205,25 @@ export function getFirstPassSystemPrompt({
  * Generates the user prompt for the first pass of indexing
  */
 export function getFirstPassUserPrompt(startPage: number, endPage: number, chunk: string): string {
-  return `Create a professional index for this book excerpt. Go above and beyond to make the index 
+  // Determine if this is full-document processing or chunk processing
+  const isFullDocument = startPage === 1 && endPage > 150; // Likely full document if starts at 1 and is substantial
+  const documentType = isFullDocument ? 'complete document' : 'book excerpt';
+  const pageSpan = isFullDocument 
+    ? `the entire ${endPage}-page document` 
+    : `approximately pages ${startPage} to ${endPage}`;
+  
+  return `Create a professional index for this ${documentType}. Go above and beyond to make the index 
   as comprehensive and relevant as possible for the book's audience.
-  The excerpt spans approximately pages ${startPage} to ${endPage}.
+  ${isFullDocument ? `This is ${pageSpan}, giving you complete context for optimal indexing decisions.` : `The excerpt spans ${pageSpan}.`}
 
   ## TASK ##
   For this FIRST PASS, focus on:
   1. Identifying index-worthy NOUNS (concepts, people, places, themes) - avoid adjectives and adverbs
   2. Focus on book's emphases - skip people, events, or places mentioned only in passing
   3. Include terms that represent substantive discussions, not just word occurrences
-  4. Include specific page numbers based on your estimate of where content appears in this chunk
+  4. ${isFullDocument 
+      ? 'With complete document context, create accurate page number estimates based on content flow and structure' 
+      : 'Include specific page numbers based on your estimate of where content appears in this chunk'}
   5. Create hierarchical structure for broader terms (limit subentries to max 20, ideally 5-15)
   6. Consider key figures, methodologies, and concepts central to the academic field
   7. Aim for quality over quantity - target meaningful terms that readers would actually look up
@@ -159,7 +260,7 @@ export function getFirstPassUserPrompt(startPage: number, endPage: number, chunk
     ]
   }
 
-  Here's the text to index:
+  Here's the ${documentType} to index:
   ${chunk}`;
 }
 
@@ -184,7 +285,16 @@ export function getSecondPassSystemPrompt({
   ## CHICAGO MANUAL OF STYLE INDEXING GUIDELINES ##
   
   CONTENT REFINEMENT:
-  • Focus on the book's emphases; remove people, events, or places mentioned only in passing
+  • Focus on the book's emphases; remove people, events, or places mentioned only in passing. 
+  Example:
+  In a work on the history of the automobile in the United States, for example, an author 
+  might write, “After World War II small sports cars like the British MG, often owned by returning 
+  veterans, began to make their appearance in college towns like Northampton, Massachusetts, and 
+  Ann Arbor, Michigan.” An indexer should resist the temptation to index these place-names; the 
+  two towns mentioned have nothing to do with the theme of the work. The MG sports car, on the 
+  other hand, should be indexed, given the subject of the work.
+  • On the other hand, if the person, event, or place is relevant to a reader and contributes
+    to the book's themes, even if only mentioned once, it should be indexed.
   • Ensure entries are substantive nouns, not adjectives or adverbs
   • Target approximately ${totalPages} main entries for this ${totalPages}-page document (roughly 1 main entry per page)
   • Remove entries that are not truly significant to the book's themes
@@ -199,7 +309,6 @@ export function getSecondPassSystemPrompt({
   
   FORMAT:
   • Do not capitalize index entries unless they are proper nouns capitalized in the body text
-  • Use specific page numbers, not ranges when possible (e.g., "62, 64, 70" rather than "62-70")
   • For inclusive numbers: less than 100 include all digits (36-37), 101-109 only include changed part (107-9), 110-199 include two digits (115-16)
   • For names, spell out first name rather than using initials unless person is known by initials
   • Use word-by-word alphabetizing system

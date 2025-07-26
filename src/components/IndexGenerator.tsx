@@ -231,165 +231,217 @@ const IndexGenerator = (): React.ReactElement => {
         return;
       }
       
-      // Split into manageable chunks
-      const paragraphs = fullText.split('\n').filter(p => p.trim().length > 0);
-      console.log(`Document contains ${paragraphs.length} paragraphs`);
-  
-      // Target approximately 20 pages per chunk
-      const PAGES_PER_CHUNK = 20; 
-      const TARGET_CHUNKS = Math.max(1, Math.ceil(documentPageCount / PAGES_PER_CHUNK));
-      console.log(`Targeting ${TARGET_CHUNKS} chunks (${PAGES_PER_CHUNK} pages per chunk)`);
-  
-      // Calculate approximate characters per page
-      const CHARS_PER_PAGE = fullText.length / documentPageCount;
-      const TARGET_CHUNK_SIZE = CHARS_PER_PAGE * PAGES_PER_CHUNK;
+      // Determine processing approach: single-pass vs chunking
+      // Reduced limits for better reliability - large documents should use chunking
+      const SINGLE_PASS_PAGE_LIMIT = 200; // More conservative page limit
+      const SINGLE_PASS_CHAR_LIMIT = 400000; // Reduced to 400k chars for reliability
+      const useSinglePass = documentPageCount < SINGLE_PASS_PAGE_LIMIT && fullText.length < SINGLE_PASS_CHAR_LIMIT;
       
-      console.log(`Estimated ${CHARS_PER_PAGE.toFixed(0)} chars per page, targeting chunks of ~${TARGET_CHUNK_SIZE.toFixed(0)} chars`);
+      console.log(`📊 Document analysis: ${documentPageCount} pages, ${fullText.length} characters`);
+      console.log(`🚀 Processing approach: ${useSinglePass ? 'SINGLE-PASS (full context)' : 'CHUNKING (traditional)'}`);
       
-      const chunks: string[] = [];
-      let currentChunk = '';
-  
-      for (const paragraph of paragraphs) {
-        // If adding this paragraph would exceed target size, finalize the chunk
-        if ((currentChunk + paragraph).length > TARGET_CHUNK_SIZE && currentChunk.length > 0) {
-          chunks.push(currentChunk);
-          currentChunk = paragraph;
-        } else {
-          currentChunk += (currentChunk ? '\n' : '') + paragraph;
+      // Log why we're using chunking for transparency
+      if (!useSinglePass) {
+        if (documentPageCount >= SINGLE_PASS_PAGE_LIMIT) {
+          console.log(`📚 Using chunking because document has ${documentPageCount} pages (limit: ${SINGLE_PASS_PAGE_LIMIT})`);
+        }
+        if (fullText.length >= SINGLE_PASS_CHAR_LIMIT) {
+          console.log(`📄 Using chunking because document has ${fullText.length} characters (limit: ${SINGLE_PASS_CHAR_LIMIT})`);
         }
       }
-  
-      // Add the final chunk if it has content
-      if (currentChunk) chunks.push(currentChunk);
-  
-      const totalChunks = chunks.length;
-      console.log(`Document split into ${totalChunks} chunks with sizes: ${chunks.map(c => c.length).join(', ')}`);
-      
-      setProcessingStatus(prev => ({
-        ...prev,
-        totalChunks,
-        status: 'processing',
-      }));
-      
-      // Generate document summary for better context
-      let documentSummary = '';
-      if (chunks.length > 0) {
-        try {
-          console.log('Generating document summary...');
-          
-          // Use the first chunk to generate a summary
-          const sampleText = chunks[0].substring(0, 3000);
-          
-          const summaryResponse = await fetch('/api/get-document-summary', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ text: sampleText }),
-            signal: abortControllerRef.current.signal
-          });
-          
-          if (summaryResponse.ok) {
-            const summaryData = await summaryResponse.json();
-            documentSummary = summaryData.summary;
-            console.log('Generated document summary:', documentSummary);
-          } else {
-            console.warn('Failed to generate document summary. Status:', summaryResponse.status);
-          }
-        } catch (summaryError) {
-          console.warn('Error generating document summary:', summaryError);
-          // Continue without a summary
-        }
-      }
-      
-      // FIRST PASS: Process each chunk to collect candidate terms
-      let allEntries: IndexEntry[] = [];
-      
-      for (let i = 0; i < chunks.length; i++) {
-        if (abortControllerRef.current?.signal.aborted) {
-          throw new Error('Processing aborted');
-        }
-        
-        setProcessingStatus(prev => ({
-          ...prev,
-          currentChunk: i + 1,
-          progress: Math.round(((i + 0.5) / (totalChunks + 1)) * 100), // Reserve ~half the progress for first pass
-        }));
-        
-        console.log(`Processing chunk ${i + 1} of ${totalChunks} (${chunks[i].length} characters)...`);
-        
-        try {
-          // Calculate the page range for this chunk
-          const startPage = Math.max(1, Math.round(1 + (i * documentPageCount / totalChunks)));
-          const endPage = Math.min(documentPageCount, Math.round((i + 1) * documentPageCount / totalChunks));
-          
-          // Send chunk to the API for processing
-          const response = await fetch('/api/generate-index', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              chunk: chunks[i],
-              chunkIndex: i,
-              totalChunks,
-              totalPages: documentPageCount,
-              pageRange: { start: startPage, end: endPage },
-              previousEntries: i > 0 ? allEntries.slice(0, 20) : [], // Send a sample of previous entries
-              exampleIndex: showExampleInput ? exampleIndex : '', // Send example index if provided
-              isSecondPass: false, // Explicitly mark as first pass
-              documentSummary: documentSummary, // Include summary for context
-              audienceLevel: audienceLevel === 0 ? "high_school" : audienceLevel === 1 ? "undergraduate" : "graduate",
-              indexDensity: indexDensity === 0 ? "broad" : indexDensity === 1 ? "medium" : "detailed",
-              targetAudience: targetAudience
-            }),
-            signal: abortControllerRef.current.signal
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error('API error response:', errorData);
-            throw new Error(typeof errorData === 'object' && errorData?.error ? 
-                errorData.error : 'Failed to process chunk');
-          }
-          
-          const data = await response.json();
-          
-          if (data.entries && Array.isArray(data.entries)) {
-            console.log(`Received ${data.entries.length} entries for chunk ${i + 1}`);
-            
-            // Merge new entries with existing ones
-            allEntries = mergeIndexEntries(allEntries, data.entries);
-            
-            setIndexEntries(allEntries);
-            setProcessingStatus(prev => ({
-              ...prev,
-              entriesGenerated: allEntries.length,
-            }));
-          } else {
-            console.warn(`No entries received for chunk ${i + 1}:`, data);
-          }
-        } catch (chunkError) {
-          console.error(`Error processing chunk ${i + 1}:`, chunkError);
-          // Continue with the next chunk instead of failing completely
-          if (i < chunks.length - 1) {
-            console.log('Continuing with next chunk...');
-            continue;
-          } else {
-            throw chunkError; // Throw on the last chunk
-          }
-        }
-        
-        // Add a small delay to avoid overwhelming the API
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      
-      // SECOND PASS: Refine the complete set of entries
-      setProcessingStatus(prev => ({
-        ...prev,
-        status: 'merging',
-        progress: 75, // Start second pass progress at 75%
-      }));
+       
+       let allEntries: IndexEntry[] = [];
+       let documentSummary = '';
+       
+       // Helper function for single-pass processing
+       const processSinglePass = async (text: string): Promise<IndexEntry[]> => {
+         setProcessingStatus(prev => ({
+           ...prev,
+           currentChunk: 1,
+           progress: 25,
+         }));
+         
+         console.log(`Processing entire document (${text.length} characters) in single pass...`);
+         
+         try {
+           const controller = new AbortController();
+           const timeoutId = setTimeout(() => controller.abort(), 360000); // 6 minutes
+
+           const response = await fetch('/api/generate-index', {
+             method: 'POST',
+             headers: {
+               'Content-Type': 'application/json',
+             },
+             body: JSON.stringify({
+               chunk: text, // Send entire document
+               chunkIndex: 0,
+               totalChunks: 1,
+               totalPages: documentPageCount,
+               pageRange: { start: 1, end: documentPageCount },
+               previousEntries: [], // No previous entries needed
+               exampleIndex: showExampleInput ? exampleIndex : '',
+               isSecondPass: false,
+               documentSummary: documentSummary,
+               audienceLevel: audienceLevel === 0 ? "high_school" : audienceLevel === 1 ? "undergraduate" : "graduate",
+               indexDensity: indexDensity === 0 ? "broad" : indexDensity === 1 ? "medium" : "detailed",
+               targetAudience: targetAudience
+             }),
+             signal: controller.signal
+           });
+           
+           clearTimeout(timeoutId);
+
+           if (!response.ok) {
+             const errorData = await response.json();
+             console.error('Single-pass API error:', errorData);
+             throw new Error(typeof errorData === 'object' && errorData?.error ? 
+                 errorData.error : 'Failed to process document in single pass');
+           }
+           
+           const data = await response.json();
+           
+           if (data.entries && Array.isArray(data.entries)) {
+             console.log(`✅ Single-pass generated ${data.entries.length} entries`);
+             setIndexEntries(data.entries);
+             setProcessingStatus(prev => ({
+               ...prev,
+               entriesGenerated: data.entries.length,
+               progress: 50,
+             }));
+             return data.entries;
+           } else {
+             console.warn('No entries received from single-pass:', data);
+             return [];
+           }
+         } catch (error) {
+           console.error('Single-pass processing error:', error);
+           throw error;
+         }
+       };
+       
+       // Helper function for chunking processing (placeholder for now)
+       const processWithChunking = async (text: string): Promise<IndexEntry[]> => {
+         // Calculate optimal chunk size and overlap
+         const CHUNK_SIZE = 120000; // ~120K characters per chunk 
+         const OVERLAP_SIZE = 15000; // 15K characters overlap for context continuity
+         
+         // Calculate how many chunks we'll need 
+         const effectiveChunkSize = CHUNK_SIZE - OVERLAP_SIZE;
+         const totalChunks = Math.ceil(text.length / effectiveChunkSize);
+         console.log(`📑 Dividing document into ${totalChunks} chunks with ${OVERLAP_SIZE} character overlap`);
+         console.log(`📏 Document: ${text.length} chars, effective chunk size: ${effectiveChunkSize} chars`);
+         
+         setProcessingStatus(prev => ({
+           ...prev,
+           totalChunks: totalChunks,
+           status: 'processing',
+         }));
+         
+         // Process each chunk and accumulate entries
+         let allChunkEntries: IndexEntry[] = [];
+         
+         for (let i = 0; i < totalChunks; i++) {
+           // Calculate chunk boundaries with overlap
+           const startChar = i === 0 ? 0 : i * effectiveChunkSize;
+           const endChar = Math.min(startChar + CHUNK_SIZE, text.length);
+           const chunkText = text.substring(startChar, endChar);
+           
+           // Estimate page ranges for this chunk
+           const startPage = Math.max(1, Math.floor((startChar / text.length) * documentPageCount));
+           const endPage = Math.min(documentPageCount, Math.ceil((endChar / text.length) * documentPageCount));
+           
+           console.log(`🔍 Processing chunk ${i+1}/${totalChunks}:`);
+           console.log(`   📍 Characters: ${startChar} - ${endChar} (${chunkText.length} chars)`);
+           console.log(`   📄 Estimated pages: ${startPage} - ${endPage}`);
+           if (i > 0) {
+             console.log(`   🔄 Overlap with previous chunk: ${OVERLAP_SIZE} chars`);
+           }
+           
+           setProcessingStatus(prev => ({
+             ...prev,
+             currentChunk: i + 1,
+             progress: Math.floor((i / totalChunks) * 50), // First pass goes up to 50%
+           }));
+           
+           try {
+             const response = await fetch('/api/generate-index', {
+               method: 'POST',
+               headers: {
+                 'Content-Type': 'application/json',
+               },
+               body: JSON.stringify({
+                 chunk: chunkText,
+                 chunkIndex: i,
+                 totalChunks: totalChunks,
+                 totalPages: documentPageCount,
+                 pageRange: { start: startPage, end: endPage },
+                 previousEntries: allChunkEntries, // Pass previous entries for context
+                 exampleIndex: showExampleInput ? exampleIndex : '',
+                 isSecondPass: false,
+                 documentSummary: documentSummary,
+                 audienceLevel: audienceLevel === 0 ? "high_school" : audienceLevel === 1 ? "undergraduate" : "graduate",
+                 indexDensity: indexDensity === 0 ? "broad" : indexDensity === 1 ? "medium" : "detailed",
+                 targetAudience: targetAudience
+               }),
+               signal: abortControllerRef.current?.signal
+             });
+             
+             if (!response.ok) {
+               const errorData = await response.json();
+               console.error(`Chunk ${i+1} API error:`, errorData);
+               throw new Error(typeof errorData === 'object' && errorData?.error ? 
+                   errorData.error : `Failed to process chunk ${i+1}`);
+             }
+             
+             const data = await response.json();
+             
+             if (data.entries && Array.isArray(data.entries)) {
+               console.log(`✅ Chunk ${i+1} generated ${data.entries.length} entries`);
+               
+               // Merge with existing entries
+               allChunkEntries = mergeIndexEntries(allChunkEntries, data.entries);
+               
+               setProcessingStatus(prev => ({
+                 ...prev,
+                 entriesGenerated: allChunkEntries.length,
+               }));
+               
+             } else {
+               console.warn(`No entries received from chunk ${i+1}:`, data);
+             }
+             
+           } catch (error) {
+             console.error(`Error processing chunk ${i+1}:`, error);
+             throw error;
+           }
+         }
+         
+         return allChunkEntries;
+       };
+       
+       if (useSinglePass) {
+         // SINGLE-PASS PROCESSING: Process entire document at once
+         console.log('🧠 Using single-pass processing for optimal accuracy...');
+         
+         setProcessingStatus(prev => ({
+           ...prev,
+           totalChunks: 1,
+           status: 'processing',
+         }));
+         
+         allEntries = await processSinglePass(fullText);
+       } else {
+         // CHUNKING PROCESSING: Use traditional approach for large documents
+         console.log('📚 Using chunking approach for large document...');
+         allEntries = await processWithChunking(fullText);
+       }
+       
+       // SECOND PASS: Refine the complete set of entries
+       setProcessingStatus(prev => ({
+         ...prev,
+         status: 'merging',
+         progress: 75, // Start second pass progress at 75%
+       }));
       
       // Skip second pass if no entries were generated
       if (allEntries.length === 0) {
