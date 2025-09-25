@@ -6,6 +6,7 @@ body {
   @apply bg-white text-gray-900;
 }
 
+/* TODO I think this can be done with Tailwind configuration */
 h1,
 h2 {
   font-family: var(--font-playfair), serif;
@@ -49,12 +50,14 @@ label {
 }
 
 .shadow-float {
+  /* TODO make this a custom tailwind class */
   box-shadow:
     0px 5px 15px 0px rgba(0, 0, 0, 0.1),
     0 4px 6px -4px rgba(0, 0, 0, 0.1);
 }
 
 /* Animation classes */
+/* TODO turn the fading stuff into React components with their own module CSS file */
 .fade-in {
   animation: fadeIn 0.6s ease-in-out;
 }
@@ -107,6 +110,7 @@ label {
 }
 
 /* Utility classes */
+  /* TODO: All the coloring done in this file should be done by Tailwind */
 .bg-mint {
   background-color: var(--mint);
 }
@@ -164,6 +168,7 @@ label {
   opacity: 0;
 }
 
+/* TODO make book animation its own component with own CSS file */
 @keyframes book-open {
   0% {
     transform: scale(0.8);
