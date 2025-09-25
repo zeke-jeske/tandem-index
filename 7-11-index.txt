@@ -1,0 +1,627 @@
+antiracism, 15, 16
+
+anthropology, 7, 8, 10, 12, 75, 171, 172, 177, 178, 203
+
+blackface, 3, 4, 163, 164, 165
+
+black people, 3, 4, 5, 11, 12, 72, 211, 213, 214, 217
+
+change, 5, 10, 11, 17
+
+Christians, 
+  - Black, 7, 11, 13
+  - White, 7, 10, 11, 15, 16, 17, 18, 19
+
+collisions, 17
+  - defined, 70, 71, 99, 100
+  - essential but insufficient, 71
+  - examples of, 70, 72, 73, 74
+  - imagery of, 71, 72
+  - characteristics of, 83, 84, 85, 86
+  - constant versus rare, 82, 83
+  - frequency for people of color, 80, 81, 82
+  - nonagentic nature of, 83, 84
+  - ranking system, 89, 90, 91, 92, 93
+  - with invisibility, 97, 98, 99, 100, 101, 108
+  - dislocation, 100
+  - with culpability, 111, 112, 113, 114, 115
+  - with injustice, 105, 106, 107, 108, 109, 110, 111
+  - White tears response, 114, 115
+  - chance re-encounters after, 281
+  - racial bigotry, 281
+
+cross-references, 11
+
+edmondson, Christina Barland, 7
+
+ethnography, 9
+  - insider, 291, 292
+  - research objectivity, 292
+
+gaze, 3, 4, 5, 6, 7, 103, 104
+
+grace, 14, 15, 18
+  - anticipated responses to, 177, 178, 179, 180, 181
+  - Christianity and, 167, 168, 171, 172, 176, 177, 180
+  - definition of, 171, 172, 173, 175, 176, 177
+  - examples of, 163, 164, 165, 166, 167, 168, 169, 170, 171, 180
+  - and forgiveness, 167, 172, 175, 176, 179, 180, 181
+  - as free gift, 167, 175, 176, 177, 180
+  - God as source of, 176, 177
+  - in relationships, 165, 167, 168, 177, 178, 179, 180
+  - reciprocity in, 177, 178, 179, 180
+  - as burger, not special sauce, 204
+  - cheap, 201
+  - contradictory aspects of, 201
+  - foundation of hope, 210, 220, 221
+  - recognizing past incidents of, 203
+  - relational process of, 202, 203
+  - responses to, 201, 202, 204
+  - as foundation for belonging, 261
+  - in church community, 261, 263
+  - and risk taking, 263, 265
+  - and trust, 263, 264, 265
+
+griffith Joyner, Florence, 3
+
+guilt, 16
+  - fear of, 152, 153, 154
+  - versus shame, 154, 155
+  - White guilt complex, 153
+  - in collisions, 164
+  - what to do with, 163, 164, 165, 167
+
+hope, 5, 7, 8, 9, 10, 17, 18, 19
+  - characteristics of, 44, 45
+  - definition of, 44
+  - effects on health, 45
+  - incremental approach to, 57
+  - multiple types of, 45, 46
+  - social dimensions of, 46
+  - as a weapon, 64
+  - collisions with reality, 70, 71, 72
+  - conventional White, 60, 61
+  - delusional, 60, 61, 62, 64, 65, 209, 218
+  - hopelessness, 63, 64, 66
+  - white-supremacist, 61, 62, 64
+  - between horror and, 164, 165, 166
+  - and grace, 164, 165, 166, 168, 171
+  - abiding, 209, 210, 214, 217
+  - foundation in grace, 210
+  - in Jesus, 218, 219, 220, 221
+  - and perseverance, 209, 213, 217
+  - questions about, 210, 211
+  - as social imaginary, 210, 221, 281
+  - story line of, 219, 220, 221
+  - common, 281
+
+hooks, bell, 1, 100
+
+interviews, 8, 10, 11, 12, 13, 14, 16
+
+madison, Wisconsin, 4, 11, 12, 13
+  - as best place to live, 288
+  - Black History for a New Day course, 289
+  - education disparities, 288, 289
+  - incarceration rates, 289
+  - Justified Anger article, 289
+  - Nehemiah Center, 289, 290
+  - racial disparities, 288, 289
+  - university student, 281
+  - YWCA, 289
+
+participant observation, 8, 9, 12, 287, 288
+
+perseverance, 1, 18, 138, 141, 143, 144, 155, 159, 209, 213
+
+racial justice, 42, 43, 46, 52, 128, 139, 140
+  - commitment to, 9, 10
+  - definition of, 9, 10, 11
+  - hope for, 7, 18, 19
+  - pursuing long-term, 16, 17, 18
+  - church role in, 260, 261, 262, 265
+  - joy in work of, 265, 266, 267, 268
+  - messy nature of, 261, 262, 263
+  - sustainability in, 265
+  - trust in pursuit of, 263, 264, 265
+  - YWCA approach to, 262
+
+racism, 
+  - addressing, 7, 8, 16, 17, 18, 19, 166, 168, 170
+  - persistence of, 4, 18
+  - research on, 7, 8, 9, 10, 11, 13, 15, 19
+  - systemic, 17
+  - as social problem, 108, 109, 110, 111, 202
+  - as tear in society, 109, 110
+  - and grace, 168, 171, 172
+  - historical, 165, 169, 170
+  - addressing long-term, 202, 204, 209
+  - White people addressing, 203, 205, 206, 209, 214, 216, 217
+  - Black experiences of, 281
+  - sins of, 281
+
+research methodology, 8, 9, 10, 11, 12, 13, 14
+  - insider ethnography, 291, 292
+  - objectivity in, 292
+  - qualitative versus quantitative, 285, 286
+  - researcher identity, 292
+
+South Africa, 8, 12, 48, 49, 50, 52, 210, 211, 212, 213, 216, 218
+
+university of Wisconsin-Madison, 4, 8, 13
+
+vaulx, Princess, 13, 283, 287
+
+white tears, 5, 114, 115
+
+brown, Michael, 42
+
+butler, Anthea, 41, 57
+
+brueggemann, Walter, 55, 56, 175
+
+coates, Ta-Nehisi, 41
+
+compassion, 42, 58
+
+cOVID-19, 41
+
+denker, Angela, 42, 43
+
+delusional hope, 60, 61, 62, 64, 65
+  - characteristics of, 53
+  - conventional nature of, 56, 57, 58
+  - optimistic nature of, 53, 54, 55, 56
+
+fatigue, 58
+
+floyd, George, 41, 42, 57, 124, 135, 202
+
+frankl, Viktor, 45
+
+graham, Billy, 57
+
+hays, Krystal, 43
+
+incrementalism, 57
+
+johnson, Jack, 59
+
+king, Martin Luther, Jr., 57, 62, 63
+
+microaggressions, 54
+  - defined, 155, 156
+  - impact of, 156
+  - examples of, 155
+
+mulvey, Peter, 42
+
+optimism, 53, 54, 55, 56
+
+seminary, 48, 49, 50, 51, 52
+
+status threat, 58, 59
+
+white people, 
+  - conventional hope of, 56, 57, 60, 61
+  - expectations of assimilation, 58
+  - fear of conflict, 54
+  - optimistic hope of, 53, 54, 55
+  - status threat of, 58, 59
+  - imagination of social reality, 75, 76, 77, 79, 80
+  - ability to walk away, 140
+  - Christian subcultures, 130, 131
+  - identity formation, 129, 130
+  - learning about racism, 132, 134, 135, 136, 137, 139, 140
+  - culpability in racism, 145, 146, 157, 158, 159
+  - staying on racial justice journey, 138, 141, 142, 143, 144
+  - privilege of, 148, 157
+  - living in Black neighborhoods, 150, 151, 152
+  - addressing racism, 203, 205, 206, 209, 214, 216, 217
+  - in Black townships, 211, 212, 213, 215, 216
+  - need for approval, 203
+  - advice from people of color to, 262, 263
+  - crosscultural courage for, 263
+  - learning from Black Christians, 269, 270
+  - plantago metaphor for, 269
+  - seeking approval from people of color, 262, 263
+
+caste (Wilkerson), 60
+
+de La Torre, Miguel, 63, 64
+
+douglass, frederick, 62
+
+ellison, ralph, 62
+
+geertz, clifford, 75
+
+imagination, 
+  - reality clashes with, 70, 71, 72, 74
+  - social imaginary, 75, 76, 77
+  - White imaginary, 79, 80
+
+interracial relationships, 65
+
+loving v. virginia, 65
+
+model minorities, 77
+
+nietzsche, friedrich, 64
+
+obama, barack, 63
+
+parker, theodore, 63
+
+race system, 
+  - historical development of, 77, 78, 79
+  - hierarchy in, 77
+  - legal establishment of, 78
+
+self-fulfilling prophecies, 76
+
+social imagination, 75
+
+social workers, 69
+
+tisby, jemar, 79
+
+white-supremacist hope, 61, 62, 64
+
+wilkerson, isabel, 60
+
+cultural racism, 96
+
+double consciousness, 80, 81
+
+du Bois, W. E. B., 80, 94, 137
+
+Ebonics, 92, 93
+
+epistemology of ignorance, 82, 83
+
+firmin, Anténor, 94
+
+frye, Marilyn, 82, 83
+
+kim, Matthew D., 81, 82
+
+linguistics, 92, 93
+
+metathesis, 92
+
+normativity, 99, 100, 116
+
+race, 
+  - categories of, 90, 91
+  - genetic basis of, 95
+  - hierarchy, 89, 90, 91, 96, 97
+  - invisibility of Whiteness, 97, 98, 99
+  - ranking system, 89, 90, 91, 92, 93
+  - selective race cognizance, 99
+  - collisions across, 164
+  - grace across, 165, 166, 167, 168, 171, 172
+  - relationships across, 163, 164, 165, 166, 169, 170
+
+racialization, 91
+
+unilinear evolutionism, 90, 91, 94
+
+white imaginary, 123, 125
+  - collision with, 80, 81, 82, 83, 89
+  - concepts of reality, 82, 83
+  - invisibility of Whiteness, 97, 98, 99
+  - ranking system, 89, 90, 91, 92, 93, 96, 97
+  - directionality of knowledge, 101
+  - fantasy of White innocence, 111, 112, 113
+  - gaze in, 103, 104
+
+yancy, George, 93, 98, 99
+
+culpability, 111, 112, 113, 114, 164, 168
+
+dislocation, 100
+
+emerson, Michael, 110
+
+emotional responses, 114, 115, 116
+
+hierarchy, 104, 116
+
+injustice, 105, 106, 107, 108, 109, 110, 111, 164, 171
+
+invisibility, 
+  - of whiteness, 99, 100, 101, 104, 108
+
+jones, Janine, 108, 112
+
+lament, 115, 143
+
+mills, Charles W., 104
+
+overlapping approximating experiences, 107, 108
+
+palmer, Parker, 100
+
+reversed gaze, 104
+
+smith, Christian, 110
+
+world's Columbian exhibition, 101, 102, 103
+
+agency, 123, 137
+
+antiracism training, 134, 135, 136, 139
+
+asking why, 
+  - active choice in, 123
+  - areas of discovery, 126, 127, 128
+  - as lifelong habit, 125, 129
+  - cultural learning, 126, 127
+  - for people of color, 131, 132, 133
+  - relationship with collisions, 137, 138, 139
+  - structural learning, 126
+  - theological learning, 127, 128
+
+black churches, 130, 281, 282
+
+collision moments, 
+  - agency in, 137
+  - personalizing the social, 137, 138
+  - relationship with asking why, 137, 138, 139
+
+cultural learning, 126, 127
+
+diversity, equity, and inclusion, 134, 135
+
+epistemology of experience, 138
+
+identity formation, 129, 130, 131
+
+imago Dei, 128
+
+intersectionality, 133
+
+justice, 127, 128
+
+margolis, Michele, 129, 130
+
+moral questions, 127, 128
+
+political affiliations, 129, 130
+
+religious identity, 129, 130
+
+shalom, 128
+
+structural learning, 126
+
+agnosticism, 142
+
+antiracism education, 149
+
+boyd, Drick, 153, 154
+
+charles, Mark, 157, 201
+
+Christianity, 142, 143, 204, 218, 219, 220, 221
+  - church as covenant community, 260, 261, 262
+  - forgiveness and grace in, 261
+  - racial justice work in, 260, 261, 263, 264, 265
+  - Romans 8 hope, 266, 267
+
+crapanzano, Vincent, 144, 145
+
+cultural appropriation, 149, 150
+
+diAngelo, Robin, 145
+
+disillusionment, 159
+
+embodiment, 
+  - versus intellectual knowledge, 144, 145, 146, 147
+  - challenges of, 147, 148
+
+habitus, 
+  - defined, 145, 146
+  - challenges changing, 145, 146, 147
+
+loneliness, 
+  - in racial justice work, 150, 151, 152
+  - between communities, 151
+
+mcWhorter, John, 149
+
+microdiscouragements, 159
+
+participation-induced traumatic stress (PITS), 157
+
+pitfalls to perseverance, 
+  - gaps between knowledge and embodiment, 144, 145, 146, 147
+  - uncertainty around complexity, 146, 147, 148, 149, 150
+  - loneliness, 150, 151, 152
+  - fear of guilt and shame, 152, 153, 154, 155, 156, 157, 158, 159
+
+racial battle fatigue, 156
+
+rah, Soong-Chan, 157, 201
+
+shame, 154, 155, 157
+
+social imaginaries, 158, 159
+
+tatum, Beverly, 153
+
+trauma, 157
+
+white savior, 148
+
+barclay, John, 173, 180
+
+baird, Julia, 168
+
+bourdieu, Pierre, 178
+
+debt, 
+  - acknowledgment of, 174
+  - calculation of, 173, 174, 175
+  - indebtedness, 172, 173, 174, 176, 178
+  - relational, 173, 175
+  - repayment of, 174, 175, 176
+
+ford III, James Edward, 174
+
+forgiveness, 
+  - as condemning wrong, 175
+  - from God, 176, 177
+  - and grace, 167, 172, 175, 176, 179, 180, 181, 201, 202, 220
+  - repentance in response to, 179, 180, 181
+  - asking for, 201
+  - not forced, 201, 202
+
+graeber, David, 173, 176, 177
+
+gratitude, 180
+
+han, Hahrie, 171
+
+Jourdan Anderson, 173, 174
+
+love, 
+  - and forgiveness, 179
+  - and grace, 167, 169, 176, 179, 180
+  - in relationships, 163, 164, 169, 179, 180
+
+reconciliation, 164, 165, 169, 179
+
+redemption, 176
+
+restitution, 180, 181
+
+seton, Ernest Thompson, 174, 175
+
+volf, Miroslav, 168, 175, 176, 181
+
+apologies, 201, 202
+
+apartheid, 211, 213, 217, 218
+
+cancel culture, 202
+
+colonialism, 213, 214
+
+covenant communities, 202
+
+fear, 216
+
+God, 214, 215, 217, 218, 219, 220
+
+indigenous people, 200
+
+Jesus, 217, 218, 219, 220, 221
+
+parable, 200, 201
+
+reparation, 201
+
+restoration, 201
+
+social injustice, 205
+
+townships, 211, 212, 217, 218
+
+transformation, 203, 204, 209, 210, 221
+
+abiding hope, 270
+
+church, 
+  - as covenant community, 260, 261, 262
+  - false joy in, 266
+  - racial justice work in, 260, 261, 265
+
+communities, 
+  - covenantal, 260, 261, 262
+  - risk taking in, 261, 262, 263, 264, 265
+  - trust building in, 263, 264, 265
+
+conflict, 262, 263
+
+crock pot metaphor, 261, 262
+
+identity, 264
+
+joy, 
+  - Black joy, 269, 270
+  - false joy in churches, 266
+  - leaning into, 265, 266, 267, 268
+  - as part of racial justice work, 265, 266, 268
+  - as resistance, 267, 268
+
+kimmerer, Robin Wall, 268, 269
+
+lamenting, 265, 266, 268
+
+mcCormack, Brian, 261
+
+mending, 265
+
+people of color, 
+  - advice to White people from, 262, 263
+  - and struggling hope, 269, 270
+
+plantago metaphor, 269
+
+re-membering, 268
+
+risking, 
+  - as community practice, 263, 264
+  - as posture of struggling hope, 265
+  - in racial justice work, 261, 262, 263, 264, 265
+  - social worker example, 264, 265
+  - and trust building, 263, 264, 265
+
+romans 8 hope, 266, 267
+
+struggling hope, 
+  - joy as part of, 265, 266, 267, 268
+  - lamenting as posture of, 265, 268
+  - mending as posture of, 265
+  - risking as posture of, 265
+
+trust, 
+  - building in communities, 262, 263, 264, 265
+  - can't microwave, 261
+  - reservoir metaphor, 263, 264
+  - in relationships across difference, 264, 265
+  - risk taking and, 263, 264, 265
+
+yWCA, 262
+
+belonging, 261, 282
+
+kindred, 282
+
+methodology, 
+  - participant observation, 287, 288
+  - qualitative research, 285, 286
+  - research assistant role, 287
+  - research locations, 290, 291
+
+narayan, kirin, 291, 292
+
+psalm 133:1, 281
+
+questions for reflection, 293, 294, 295, 296, 297
+
+unity, 
+  - across differences, 282
+  - biblical text on, 281, 282
+  - as witness, 282
+
+Wisconsin, 
+  - education statistics, 288, 289
+  - racial disparities, 288, 289
+
+
+
+

@@ -1,15 +1,14 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import mammoth from 'mammoth';
-
-interface IndexEntry {
-  term: string;
-  pageNumbers: string;
-  subentries?: {
-    term: string;
-    pageNumbers: string;
-  }[];
-}
+import { 
+  IndexEntry, 
+  extractPageNumbers, 
+  mergeIndexEntries, 
+  determineProcessingStrategy, 
+  calculateChunkParameters 
+} from '@/utils/indexProcessing';
+import { formatPageRanges } from '@/utils/indexingPrompts';
 
 interface ProcessingStatus {
   currentChunk: number;
@@ -31,6 +30,7 @@ const IndexGenerator = (): React.ReactElement => {
   const [targetAudience, setTargetAudience] = useState<string>('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [sortMethod, setSortMethod] = useState<'alphabetical' | 'pageNumber'>('alphabetical');
+  const [specialInstructions, setSpecialInstructions] = useState<string>('');
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>({
     currentChunk: 0,
     totalChunks: 0,
@@ -63,31 +63,7 @@ const IndexGenerator = (): React.ReactElement => {
     }
   };
   
-  // Helper function to extract page numbers from a string
-  const extractPageNumbers = (pageStr: string): (number | string)[] => {
-    return pageStr.split(/,\s*/).map(part => {
-      // Try to parse as integer
-      const num = parseInt(part.trim(), 10);
-      if (!isNaN(num)) return num;
-      
-      // If it contains a range like "23-25", parse both numbers
-      const rangeMatch = part.match(/(\d+)-(\d+)/);
-      if (rangeMatch) {
-        const start = parseInt(rangeMatch[1], 10);
-        const end = parseInt(rangeMatch[2], 10);
-        if (!isNaN(start) && !isNaN(end)) {
-          // Return all numbers in the range
-          return Array.from(
-            { length: end - start + 1 }, 
-            (_, i) => start + i
-          );
-        }
-      }
-      
-      // Otherwise keep as is (for "see also" references)
-      return part.trim();
-    }).flat();
-  };
+  // Use utility function for extracting page numbers
   
   const processDocument = async () => {
     if (!file || !documentPageCount || documentPageCount <= 0) {
@@ -99,98 +75,7 @@ const IndexGenerator = (): React.ReactElement => {
       return;
     }
     
-    // Helper function to merge index entries from different chunks
-    const mergeIndexEntries = (existingEntries: IndexEntry[], newEntries: IndexEntry[]): IndexEntry[] => {
-      const merged = [...existingEntries];
-      
-      newEntries.forEach(newEntry => {
-        // Check if this term already exists
-        const existingIndex = merged.findIndex(e => {
-          if (!e.term || !newEntry.term) return false;
-          return e.term.toLowerCase() === newEntry.term.toLowerCase();
-        });
-        
-        if (existingIndex >= 0) {
-          // Merge page numbers for existing entry
-          const existing = merged[existingIndex];
-          const existingPages = extractPageNumbers(existing.pageNumbers);
-          const newPages = extractPageNumbers(newEntry.pageNumbers);
-          
-          // Combine page numbers and remove duplicates
-          const allPages = [...existingPages, ...newPages]
-            .filter(p => p && (typeof p === 'number' || !p.toString().toLowerCase().includes('see')))
-            .filter(p => typeof p === 'number' ? !isNaN(p) : true)
-            .sort((a, b) => {
-              if (typeof a === 'number' && typeof b === 'number') {
-                return a - b;
-              }
-              return String(a).localeCompare(String(b));
-            });
-          
-          // Convert back to string format
-          const uniquePages = [...new Set(allPages)].map(p => String(p)).join(', ');
-          
-          // Handle any "see" or "see also" references
-          const seeReferences = [...existingPages, ...newPages]
-            .filter(p => typeof p === 'string' && p.toString().toLowerCase().includes('see'))
-            .filter((p, i, arr) => arr.indexOf(p) === i); // Remove duplicates
-          
-          const updatedPages = uniquePages + (seeReferences.length > 0 ? 
-            (uniquePages ? ', ' : '') + seeReferences.join(', ') : '');
-          
-          merged[existingIndex].pageNumbers = updatedPages;
-          
-          // Merge subentries
-          if (newEntry.subentries && newEntry.subentries.length > 0) {
-            if (!existing.subentries) existing.subentries = [];
-            
-            newEntry.subentries.forEach(newSubentry => {
-              const existingSubIndex = existing.subentries!.findIndex(
-                s => s.term.toLowerCase() === newSubentry.term.toLowerCase()
-              );
-              
-              if (existingSubIndex >= 0) {
-                // Merge page numbers for existing subentry
-                const existingSubPages = extractPageNumbers(existing.subentries![existingSubIndex].pageNumbers);
-                const newSubPages = extractPageNumbers(newSubentry.pageNumbers);
-                
-                // Combine page numbers and remove duplicates
-                const allSubPages = [...existingSubPages, ...newSubPages]
-                  .filter(p => p && (typeof p === 'number' || !p.toString().toLowerCase().includes('see')))
-                  .filter(p => typeof p === 'number' ? !isNaN(p) : true)
-                  .sort((a, b) => {
-                    if (typeof a === 'number' && typeof b === 'number') {
-                      return a - b;
-                    }
-                    return String(a).localeCompare(String(b));
-                  });
-                
-                // Convert back to string format
-                const uniqueSubPages = [...new Set(allSubPages)].map(p => String(p)).join(', ');
-                
-                // Handle any "see" or "see also" references
-                const seeSubReferences = [...existingSubPages, ...newSubPages]
-                  .filter(p => typeof p === 'string' && p.toString().toLowerCase().includes('see'))
-                  .filter((p, i, arr) => arr.indexOf(p) === i); // Remove duplicates
-                
-                const updatedSubPages = uniqueSubPages + (seeSubReferences.length > 0 ? 
-                  (uniqueSubPages ? ', ' : '') + seeSubReferences.join(', ') : '');
-                
-                existing.subentries![existingSubIndex].pageNumbers = updatedSubPages;
-              } else {
-                // Add new subentry
-                existing.subentries!.push(newSubentry);
-              }
-            });
-          }
-        } else {
-          // Add new entry
-          merged.push(newEntry);
-        }
-      });
-      
-      return merged;
-    };
+    // Use utility function for merging entries
   
     try {
       // Reset abort controller
@@ -231,24 +116,11 @@ const IndexGenerator = (): React.ReactElement => {
         return;
       }
       
-      // Determine processing approach: single-pass vs chunking
-      // Reduced limits for better reliability - large documents should use chunking
-      const SINGLE_PASS_PAGE_LIMIT = 200; // More conservative page limit
-      const SINGLE_PASS_CHAR_LIMIT = 400000; // Reduced to 400k chars for reliability
-      const useSinglePass = documentPageCount < SINGLE_PASS_PAGE_LIMIT && fullText.length < SINGLE_PASS_CHAR_LIMIT;
+      // Determine processing approach using utility function
+      const useSinglePass = determineProcessingStrategy(documentPageCount, fullText.length);
       
       console.log(`📊 Document analysis: ${documentPageCount} pages, ${fullText.length} characters`);
       console.log(`🚀 Processing approach: ${useSinglePass ? 'SINGLE-PASS (full context)' : 'CHUNKING (traditional)'}`);
-      
-      // Log why we're using chunking for transparency
-      if (!useSinglePass) {
-        if (documentPageCount >= SINGLE_PASS_PAGE_LIMIT) {
-          console.log(`📚 Using chunking because document has ${documentPageCount} pages (limit: ${SINGLE_PASS_PAGE_LIMIT})`);
-        }
-        if (fullText.length >= SINGLE_PASS_CHAR_LIMIT) {
-          console.log(`📄 Using chunking because document has ${fullText.length} characters (limit: ${SINGLE_PASS_CHAR_LIMIT})`);
-        }
-      }
        
        let allEntries: IndexEntry[] = [];
        let documentSummary = '';
@@ -284,7 +156,8 @@ const IndexGenerator = (): React.ReactElement => {
                documentSummary: documentSummary,
                audienceLevel: audienceLevel === 0 ? "high_school" : audienceLevel === 1 ? "undergraduate" : "graduate",
                indexDensity: indexDensity === 0 ? "broad" : indexDensity === 1 ? "medium" : "detailed",
-               targetAudience: targetAudience
+               targetAudience: targetAudience,
+               specialInstructions: specialInstructions
              }),
              signal: controller.signal
            });
@@ -319,16 +192,13 @@ const IndexGenerator = (): React.ReactElement => {
          }
        };
        
-       // Helper function for chunking processing (placeholder for now)
+       // Helper function for chunking processing
        const processWithChunking = async (text: string): Promise<IndexEntry[]> => {
-         // Calculate optimal chunk size and overlap
-         const CHUNK_SIZE = 120000; // ~120K characters per chunk 
-         const OVERLAP_SIZE = 15000; // 15K characters overlap for context continuity
+         // Calculate chunk parameters using utility function
+         const { chunkSize, overlapSize, totalChunks } = calculateChunkParameters(text.length);
+         const effectiveChunkSize = chunkSize - overlapSize;
          
-         // Calculate how many chunks we'll need 
-         const effectiveChunkSize = CHUNK_SIZE - OVERLAP_SIZE;
-         const totalChunks = Math.ceil(text.length / effectiveChunkSize);
-         console.log(`📑 Dividing document into ${totalChunks} chunks with ${OVERLAP_SIZE} character overlap`);
+         console.log(`📑 Dividing document into ${totalChunks} chunks with ${overlapSize} character overlap`);
          console.log(`📏 Document: ${text.length} chars, effective chunk size: ${effectiveChunkSize} chars`);
          
          setProcessingStatus(prev => ({
@@ -343,7 +213,7 @@ const IndexGenerator = (): React.ReactElement => {
          for (let i = 0; i < totalChunks; i++) {
            // Calculate chunk boundaries with overlap
            const startChar = i === 0 ? 0 : i * effectiveChunkSize;
-           const endChar = Math.min(startChar + CHUNK_SIZE, text.length);
+           const endChar = Math.min(startChar + chunkSize, text.length);
            const chunkText = text.substring(startChar, endChar);
            
            // Estimate page ranges for this chunk
@@ -354,7 +224,7 @@ const IndexGenerator = (): React.ReactElement => {
            console.log(`   📍 Characters: ${startChar} - ${endChar} (${chunkText.length} chars)`);
            console.log(`   📄 Estimated pages: ${startPage} - ${endPage}`);
            if (i > 0) {
-             console.log(`   🔄 Overlap with previous chunk: ${OVERLAP_SIZE} chars`);
+             console.log(`   🔄 Overlap with previous chunk: ${overlapSize} chars`);
            }
            
            setProcessingStatus(prev => ({
@@ -381,7 +251,8 @@ const IndexGenerator = (): React.ReactElement => {
                  documentSummary: documentSummary,
                  audienceLevel: audienceLevel === 0 ? "high_school" : audienceLevel === 1 ? "undergraduate" : "graduate",
                  indexDensity: indexDensity === 0 ? "broad" : indexDensity === 1 ? "medium" : "detailed",
-                 targetAudience: targetAudience
+                 targetAudience: targetAudience,
+                 specialInstructions: specialInstructions
                }),
                signal: abortControllerRef.current?.signal
              });
@@ -421,7 +292,7 @@ const IndexGenerator = (): React.ReactElement => {
        
        if (useSinglePass) {
          // SINGLE-PASS PROCESSING: Process entire document at once
-         console.log('🧠 Using single-pass processing for optimal accuracy...');
+         console.log('Using single-pass processing for optimal accuracy...');
          
          setProcessingStatus(prev => ({
            ...prev,
@@ -469,7 +340,8 @@ const IndexGenerator = (): React.ReactElement => {
             documentSummary,
             audienceLevel: audienceLevel === 0 ? "high_school" : audienceLevel === 1 ? "undergraduate" : "graduate",
             indexDensity: indexDensity === 0 ? "broad" : indexDensity === 1 ? "medium" : "detailed",
-            targetAudience: targetAudience
+            targetAudience: targetAudience,
+            specialInstructions: specialInstructions
           }),
           signal: abortControllerRef.current.signal
         });
@@ -859,6 +731,25 @@ const IndexGenerator = (): React.ReactElement => {
                 placeholder="Describe your book's target audience in a few sentences..."
               />
               <p className="text-gray-500 text-sm mt-1">Helps Tandem tailor the index to your specific audience.</p>
+            </div>
+            
+            <div className="mb-8 text-left">
+              <div className="border-l-4 border-orange-500 bg-orange-50 p-4 rounded-r-lg mb-4">
+                <label htmlFor="special-instructions" className="block text-gray-800 text-lg font-semibold mb-2">
+                  ⚡ Special Instructions (Override All Other Settings)
+                </label>
+                <textarea
+                  id="special-instructions"
+                  rows={4}
+                  value={specialInstructions}
+                  onChange={(e) => setSpecialInstructions(e.target.value)}
+                  className="w-full px-3 py-2 border border-orange-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="Enter any special instructions that should override all other settings. For example: 'Focus on technical terms only', 'Include all proper nouns', 'Use Chicago Manual of Style formatting', etc."
+                />
+                <p className="text-orange-700 text-sm mt-2 font-medium">
+                  ⚠️ These instructions will override all other settings above. Use this for specific requirements that take priority.
+                </p>
+              </div>
             </div>
             
             <div className="mb-6">
