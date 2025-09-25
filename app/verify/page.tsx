@@ -1,6 +1,6 @@
 // app/verify/page.tsx
-import VerificationPage from '@/components/VerificationPage';
-import Navigation from '@/components/Navigation';
+import VerificationPage from '@/components/VerificationPage'
+import Navigation from '@/components/Navigation'
 
 export default function VerifyPage() {
   return (
@@ -10,5 +10,5 @@ export default function VerifyPage() {
         <VerificationPage />
       </div>
     </div>
-  );
+  )
 }
