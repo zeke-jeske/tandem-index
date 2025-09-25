@@ -1,3 +1,4 @@
+// An example index for testing. Not imported by any code.
 const PREDEFINED_INDEX = [
   {
     term: 'AGOA (African Growth and Opportunity Act)',
