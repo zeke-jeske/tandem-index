@@ -1,22 +1,22 @@
-"use client";
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
+'use client'
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+import Image from 'next/image'
 
 const Navigation = () => {
-  const pathname = usePathname();
-  
+  const pathname = usePathname()
+
   return (
     <nav className="bg-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 py-2">
         <div className="flex justify-between items-center h-14">
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <Image 
-                src="/images/logo1.png" 
-                alt="Tandem Index Logo" 
-                width={120} 
-                height={32} 
+              <Image
+                src="/images/logo1.png"
+                alt="Tandem Index Logo"
+                width={120}
+                height={32}
                 className="mr-2"
               />
             </Link>
@@ -55,7 +55,7 @@ const Navigation = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Mobile navigation */}
       <div className="md:hidden border-t border-gray-200">
         <div className="flex">
@@ -92,7 +92,7 @@ const Navigation = () => {
         </div>
       </div>
     </nav>
-  );
-};
+  )
+}
 
-export default Navigation;
+export default Navigation

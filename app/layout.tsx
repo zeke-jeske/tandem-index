@@ -24,7 +24,11 @@ export const metadata: Metadata = {
   description: 'Professional book indexing with AI',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en" className={`${playfair.variable} ${publicSans.variable}`}>
       <body className="bg-gray-100">{children}</body>
