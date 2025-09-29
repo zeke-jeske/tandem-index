@@ -41,7 +41,7 @@ export default function Steps({ currentStep }: StepsProps) {
               <div
                 className={classNames(
                   // z-index 10 to ensure it appears above the connecting lines
-                  'flex h-12 w-12 flex-shrink-0 z-10 items-center justify-center rounded-full',
+                  'flex h-12 w-12 shrink-0 z-10 items-center justify-center rounded-full',
                   // Style previous steps, current step, and future steps differently
                   index < currentStep && 'bg-mint text-white',
                   index === currentStep &&

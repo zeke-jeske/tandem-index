@@ -500,11 +500,11 @@ export default function IndexGenerator() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
       <div className="w-full text-center max-w-5xl">
-        <div className="text-center w-full mb-8 animate-fade-in">
-          <h1 className="verification-title mb-4 font-serif text-gray-800">
+        <div className="text-center w-full mb-8">
+          <h1 className="verification-title mb-4 font-serif text-gray-800 animate-fade-in">
             Create a professional index for your book.
           </h1>
-          <p className="text-gray-600 font-sans animate-fade-in-delay-1">
+          <p className="text-gray-600 font-sans animate-fade-in-delay-1 opacity-0">
             Upload your document, set your preferences, and let Tandem do the
             rest.
           </p>

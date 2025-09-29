@@ -168,7 +168,7 @@ const IndexComparison = () => {
               className={`px-8 py-3 rounded-lg font-semibold text-white transition-all ${
                 isComparing || !index1.trim() || !index2.trim()
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105'
+                  : 'bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105'
               }`}
             >
               {isComparing ? (

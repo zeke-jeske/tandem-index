@@ -19,7 +19,7 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             href="/generator"
-            className="px-6 py-3 !text-white bg-darkRed rounded-lg transition-colors"
+            className="px-6 py-3 text-white bg-darkRed rounded-lg transition-colors"
           >
             Try the Demo
           </Link>

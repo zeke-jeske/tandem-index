@@ -42,7 +42,7 @@ const VideoBackground = ({ videoSrc, children }: VideoBackgroundProps) => {
       </div>
 
       {/* Content */}
-      <div className="relative flex-grow flex flex-col items-center justify-center z-10">
+      <div className="relative grow flex flex-col items-center justify-center z-10">
         {children}
       </div>
     </div>

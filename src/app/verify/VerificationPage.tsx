@@ -162,11 +162,11 @@ const VerificationPage = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
       <div className="w-full text-center max-w-5xl">
-        <div className="text-center mb-8 animate-fade-in">
-          <h1 className="verification-title mb-4 leading-snug font-serif text-gray-800">
+        <div className="text-center mb-8">
+          <h1 className="verification-title mb-4 leading-snug font-serif text-gray-800 animate-fade-in">
             Verify that Tandem can understand your book.
           </h1>
-          <p className="text-gray-600 font-sans animate-fade-in-delay-1">
+          <p className="text-gray-600 font-sans animate-fade-in-delay-1 opacity-0">
             Upload a sample chapter to verify Tandem's understanding of your
             page numbers and chapters.
           </p>
@@ -182,11 +182,11 @@ const VerificationPage = () => {
               >
                 {index > 0 && (
                   <div
-                    className={`h-0.5 flex-grow ${index <= currentStep ? 'bg-mint' : 'bg-gray-200'}`}
+                    className={`h-0.5 grow ${index <= currentStep ? 'bg-mint' : 'bg-gray-200'}`}
                   />
                 )}
                 <div
-                  className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${
                     index < currentStep
                       ? 'bg-mint'
                       : index === currentStep
@@ -202,7 +202,7 @@ const VerificationPage = () => {
                 </div>
                 {index < steps.length - 1 && (
                   <div
-                    className={`h-0.5 flex-grow ${index < currentStep ? 'bg-mint' : 'bg-gray-200'}`}
+                    className={`h-0.5 grow ${index < currentStep ? 'bg-mint' : 'bg-gray-200'}`}
                   />
                 )}
               </div>

@@ -27,14 +27,14 @@ export default function CompletedIndexView({
     return entries.map((entry, index) => (
       <div key={index} className="mb-2">
         <div className="flex">
-          <div className="flex-grow font-medium">{entry.term}</div>
+          <div className="grow font-medium">{entry.term}</div>
           <div className="text-gray-600">{entry.pageNumbers}</div>
         </div>
         {entry.subentries && entry.subentries.length > 0 && (
           <div className="pl-6">
             {entry.subentries.map((subentry, subIndex) => (
               <div key={`${index}-${subIndex}`} className="flex">
-                <div className="flex-grow">- {subentry.term}</div>
+                <div className="grow">- {subentry.term}</div>
                 <div className="text-gray-600">{subentry.pageNumbers}</div>
               </div>
             ))}
@@ -99,7 +99,7 @@ export default function CompletedIndexView({
     return flattenedEntries.map((entry, index) => (
       <div key={index} className="mb-2">
         <div className="flex">
-          <div className="flex-grow font-medium">{entry.displayText}</div>
+          <div className="grow font-medium">{entry.displayText}</div>
           <div className="text-gray-600">{entry.pageNumbers}</div>
         </div>
       </div>
