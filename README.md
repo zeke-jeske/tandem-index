@@ -26,13 +26,15 @@ named file, or an appropriately named directory containing an `index.ts` or `ind
   - [`app/`](./src/app) - Main application code, including pages as well as components and utilities
     that are used by a single page
     - [`api/`](./src/app/api) - Next.js API route handlers
+    - [`globals.css`](./src/app/globals.css) - Global CSS file for the application, including
+      Tailwind CSS imports and theme customizations
   - [`components/`](./src/components) - Reusable React components used across multiple pages
   - [`utils/`](./src/utils) - Shared utilities and helper functions
 - [`.prettierignore`](./.prettierignore) and [`.prettierrc.json`](./.prettierrc.json) - Config files for Prettier
 - [`eslint.config.mts`](./eslint.config.mts) - Config file for ESLint
 - [`next.config.ts`](./next.config.ts) - Config file for Next.js
 - [`postcss.config.mjs`](./postcss.config.mjs) - Config file for PostCSS
-- [`tailwind.config.cjs`](./tailwind.config.cjs) - Config file for Tailwind CSS, including theme customizations
+- [`tailwind.config.cjs`](./tailwind.config.cjs) - Config file for Tailwind CSS
 
 ### NPM packages used by this project
 
@@ -46,7 +48,6 @@ named file, or an appropriately named directory containing an `index.ts` or `ind
 | [react](https://www.npmjs.com/package/react) | JavaScript library for building user interfaces |
 | [react-dom](https://www.npmjs.com/package/react-dom) | Required for React |
 | [uuid](https://www.npmjs.com/package/uuid) | Generate RFC-compliant UUIDs |
-| [autoprefixer](https://www.npmjs.com/package/autoprefixer) | PostCSS plugin to parse CSS and add vendor prefixes. Used by Tailwind CSS. |
 | [eslint](https://www.npmjs.com/package/eslint) | Pluggable JavaScript linter for identifying and fixing code issues |
 | [globals](https://www.npmjs.com/package/globals) | Global identifiers from different JavaScript environments. Used for ESLint config. |
 | [jiti](https://www.npmjs.com/package/jiti) | Required to use a TypeScript ESLint config file |

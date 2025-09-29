@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
 
-// In app/layout.tsx
 import { Playfair_Display } from 'next/font/google'
 import { Public_Sans } from 'next/font/google'
 
@@ -30,8 +29,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${playfair.variable} ${publicSans.variable}`}>
-      <body className="bg-gray-100">{children}</body>
+    <html lang="en">
+      <body className="bg-white text-gray-900">{children}</body>
     </html>
   )
 }
