@@ -1,4 +1,6 @@
 /uploads/*
+# Temporary lock files from LibreOffice
+**/.~lock.*
 
 # Everything below here is a standard .gitignore file for a Next.js project
 
