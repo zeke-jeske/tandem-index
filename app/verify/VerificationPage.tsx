@@ -1,10 +1,7 @@
 // src/components/VerificationPage.tsx
 'use client'
 import { useState } from 'react'
-import {
-  parseDocumentSample,
-  selectRandomPassages,
-} from '../utils/documentParser'
+import { parseDocumentSample, selectRandomPassages } from './documentParser'
 
 interface TextSegment {
   text: string

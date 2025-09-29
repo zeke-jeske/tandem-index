@@ -1,5 +1,5 @@
 import NavLayout from '@/components/NavLayout'
-import VerificationPage from '@/components/VerificationPage'
+import VerificationPage from './VerificationPage'
 
 export default function IndexPage() {
   return (

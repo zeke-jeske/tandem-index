@@ -1,6 +1,6 @@
 'use client'
 
-import IndexGenerator from '@/components/IndexGenerator'
+import IndexGenerator from './IndexGenerator'
 import NavLayout from '@/components/NavLayout'
 
 export default function IndexPage() {

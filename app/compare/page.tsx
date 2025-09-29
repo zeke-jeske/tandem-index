@@ -1,6 +1,6 @@
 'use client'
 
-import IndexComparison from '@/components/IndexComparison'
+import IndexComparison from './IndexComparison'
 import NavLayout from '@/components/NavLayout'
 
 export default function IndexPage() {

@@ -1,6 +1,6 @@
-import { extractPageNumbers, IndexEntry } from '@/utils/indexProcessing'
+import { extractPageNumbers, IndexEntry } from 'app/generator/indexProcessing'
 import { useState } from 'react'
-import { ProcessingStatus } from '.'
+import { ProcessingStatus } from './IndexGenerator'
 
 interface CompletedIndexViewProps {
   entries: IndexEntry[]

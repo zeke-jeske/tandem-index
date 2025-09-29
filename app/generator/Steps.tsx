@@ -1,5 +1,6 @@
 import classNames from 'classnames'
 
+// TODO: Use this also for verify page
 interface Step {
   name: string
   description: string

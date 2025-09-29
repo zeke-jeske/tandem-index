@@ -1,6 +1,6 @@
-import { IndexEntry } from '@/utils/indexProcessing'
+import { IndexEntry } from 'app/generator/indexProcessing'
 import { audienceLevels } from './ConfigureStep'
-import { ProcessingStatus } from '.'
+import { ProcessingStatus } from './IndexGenerator'
 
 export type SecondPassReturn =
   | {

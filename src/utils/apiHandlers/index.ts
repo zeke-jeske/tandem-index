@@ -1,7 +1,7 @@
 // src/utils/apiHandlers.ts
 import Anthropic from '@anthropic-ai/sdk'
 import { NextResponse } from 'next/server'
-import { IndexEntry } from './indexProcessing'
+import IndexEntry from '@/utils/indexEntry'
 import {
   getFirstPassSystemPrompt,
   getFirstPassUserPrompt,

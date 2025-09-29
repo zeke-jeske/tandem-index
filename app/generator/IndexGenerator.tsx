@@ -2,11 +2,11 @@
 import React, { useState, useRef, useEffect } from 'react'
 import mammoth from 'mammoth'
 import {
-  IndexEntry,
   mergeIndexEntries,
   determineProcessingStrategy,
   calculateChunkParameters,
-} from '@/utils/indexProcessing'
+} from './indexProcessing'
+import IndexEntry from '@/utils/indexEntry'
 import Steps from './Steps'
 import UploadStep from './UploadStep'
 import ConfigureStep, { audienceLevels, indexDensities } from './ConfigureStep'
