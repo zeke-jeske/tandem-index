@@ -1,8 +1,11 @@
 // app/page.tsx
 'use client'
-import VideoBackground from '@/components/VideoBackground'
+import VideoBackground from './VideoBackground'
 import Link from 'next/link'
 
+/**
+ * The Tandem Index front page.
+ */
 export default function Home() {
   return (
     <VideoBackground videoSrc="/videos/book-pages.mp4">

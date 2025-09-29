@@ -7,6 +7,9 @@ interface VideoBackgroundProps {
   children: React.ReactNode
 }
 
+/**
+ * A full-screen video background for the home page hero.
+ */
 const VideoBackground = ({ videoSrc, children }: VideoBackgroundProps) => {
   const [videoLoaded, setVideoLoaded] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
