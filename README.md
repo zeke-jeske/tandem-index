@@ -11,7 +11,28 @@
 
 1. Clone the repository.
 2. Run `yarn` to install dependencies.
-3. Run `yarn dev` to start the development server on [http://localhost:3000](http://localhost:3000). 
+3. Run `yarn dev` to start the development server on [http://localhost:3000](http://localhost:3000).
+
+### File Structure
+
+Source files should be stored in the same directory as the code that uses them, unless
+they are meant to be used in multiple places, in which case they should go in [`src/utils/`](./src/utils/) or
+[`src/components/`](./src/components/). Every imported module should either consist of a single appropriately
+named file, or an appropriately named directory containing an `index.ts` or `index.tsx` file.
+
+- [`misc/`](./misc) - Miscellaneous files for testing, such as sample manuscripts
+- [`public/`](./public) - Static assets like images and videos
+- [`src/`](./src) - All TypeScript source code for the Next.js application
+  - [`app/`](./src/app) - Main application code, including pages as well as components and utilities
+    that are used by a single page
+    - [`api/`](./src/app/api) - Next.js API route handlers
+  - [`components/`](./src/components) - Reusable React components used across multiple pages
+  - [`utils/`](./src/utils) - Shared utilities and helper functions
+- [`.prettierignore`](./.prettierignore) and [`.prettierrc.json`](./.prettierrc.json) - Config files for Prettier
+- [`eslint.config.mts`](./eslint.config.mts) - Config file for ESLint
+- [`next.config.ts`](./next.config.ts) - Config file for Next.js
+- [`postcss.config.mjs`](./postcss.config.mjs) - Config file for PostCSS
+- [`tailwind.config.cjs`](./tailwind.config.cjs) - Config file for Tailwind CSS, including theme customizations
 
 ### NPM packages used by this project
 
