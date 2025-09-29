@@ -1,0 +1,60 @@
+.animateBookOpen {
+  animation: book-open 0.8s ease-out forwards;
+}
+
+@keyframes book-open {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.bookLeftPage {
+  transform-origin: 20px 80px;
+  animation: openLeftPage 1s ease-out forwards;
+}
+
+@keyframes openLeftPage {
+  0% {
+    transform: rotateY(70deg);
+  }
+  100% {
+    transform: rotateY(0deg);
+  }
+}
+
+.bookRightPage {
+  transform-origin: 80px 80px;
+  animation: openRightPage 1s ease-out forwards;
+}
+
+@keyframes openRightPage {
+  0% {
+    transform: rotateY(-70deg);
+  }
+  100% {
+    transform: rotateY(0deg);
+  }
+}
+
+.bookLines {
+  opacity: 0;
+  animation: fadeInLines 0.5s ease-in 0.7s forwards;
+}
+
+@keyframes fadeInLines {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
