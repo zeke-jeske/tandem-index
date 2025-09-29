@@ -1,4 +1,4 @@
-import { audienceLevels } from './ConfigureStep'
+import { audienceLevels, Config, indexDensities } from './ConfigureStep'
 import { ProcessingStatus } from './IndexGenerator'
 
 export type SecondPassReturn =
@@ -31,13 +31,7 @@ export default async function secondPass(
   rawEntries: IndexEntry[],
   documentSummary: string,
   abortControllerRef: React.RefObject<AbortController>,
-  documentPageCount: number,
-  audienceLevel: 0 | 1 | 2,
-  indexDensity: 0 | 1 | 2,
-  targetAudience: string,
-  specialInstructions: string,
-  showExampleInput: boolean,
-  exampleIndex: string,
+  config: Config,
 ): Promise<SecondPassReturn> {
   try {
     console.log(`Starting second pass with ${rawEntries.length} raw entries...`)
@@ -50,18 +44,13 @@ export default async function secondPass(
       body: JSON.stringify({
         isSecondPass: true,
         allEntries: rawEntries,
-        totalPages: documentPageCount,
-        exampleIndex: showExampleInput ? exampleIndex : '',
+        totalPages: config.documentPageCount,
+        exampleIndex: config.exampleIndex,
         documentSummary,
-        audienceLevel: audienceLevels[audienceLevel],
-        indexDensity:
-          indexDensity === 0
-            ? 'broad'
-            : indexDensity === 1
-              ? 'medium'
-              : 'detailed',
-        targetAudience: targetAudience,
-        specialInstructions: specialInstructions,
+        audienceLevel: audienceLevels[parseInt(config.audienceLevel)],
+        indexDensity: indexDensities[parseInt(config.indexDensity)],
+        targetAudience: config.targetAudience,
+        specialInstructions: config.specialInstructions,
       }),
       signal: abortControllerRef.current.signal,
     })

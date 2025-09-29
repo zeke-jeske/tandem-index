@@ -8,7 +8,11 @@ import {
 } from './indexProcessing'
 import Steps from '@/components/Steps'
 import UploadStep from './UploadStep'
-import ConfigureStep, { audienceLevels, indexDensities } from './ConfigureStep'
+import ConfigureStep, {
+  audienceLevels,
+  Config,
+  indexDensities,
+} from './ConfigureStep'
 import SuccessPopup from './SuccessPopup'
 import UploadSuccessMessage from './UploadSuccess'
 import secondPass from './secondPass'
@@ -28,15 +32,16 @@ export interface ProcessingStatus {
 
 export default function IndexGenerator() {
   const [file, setFile] = useState<File | null>(null)
-  const [documentPageCount, setDocumentPageCount] = useState<number>(0)
+  const [config, setConfig] = useState<Config>({
+    documentPageCount: 0,
+    audienceLevel: '1',
+    indexDensity: '1',
+    targetAudience: '',
+    specialInstructions: '',
+    exampleIndex: '',
+  })
   const [indexEntries, setIndexEntries] = useState<IndexEntry[]>([])
-  const [exampleIndex, setExampleIndex] = useState<string>('')
-  const [showExampleInput, setShowExampleInput] = useState<boolean>(false)
-  const [audienceLevel, setAudienceLevel] = useState<0 | 1 | 2>(1) // 0=high school, 1=undergraduate, 2=graduate
-  const [indexDensity, setIndexDensity] = useState<0 | 1 | 2>(1) // 0=broad, 1=medium, 2=detailed
-  const [targetAudience, setTargetAudience] = useState<string>('')
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
-  const [specialInstructions, setSpecialInstructions] = useState<string>('')
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>({
     currentChunk: 0,
     totalChunks: 0,
@@ -49,7 +54,7 @@ export default function IndexGenerator() {
   // This uses the AbortController Web API to allow cancellation of ongoing web requests
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  const [currentStep, setCurrentStep] = useState<0 | 1 | 2>(0)
+  const [step, setStep] = useState<0 | 1 | 2>(0)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -57,7 +62,7 @@ export default function IndexGenerator() {
       if (selectedFile.name.endsWith('.docx')) {
         setFile(selectedFile)
         setShowUploadSuccess(true)
-        setCurrentStep(1)
+        setStep(1)
         setTimeout(() => setShowUploadSuccess(false), 2000)
       }
     }
@@ -101,18 +106,18 @@ export default function IndexGenerator() {
           chunk: text, // Send entire document
           chunkIndex: 0,
           totalChunks: 1,
-          totalPages: documentPageCount,
-          pageRange: { start: 1, end: documentPageCount },
+          totalPages: config.documentPageCount,
+          pageRange: { start: 1, end: config.documentPageCount },
           previousEntries: [], // No previous entries needed
-          exampleIndex: showExampleInput ? exampleIndex : '',
+          exampleIndex: config.exampleIndex,
           isSecondPass: false,
           documentSummary: documentSummary,
           // Convert numeric audience level to string
-          audienceLevel: audienceLevels[audienceLevel],
+          audienceLevel: audienceLevels[parseInt(config.audienceLevel)],
           // Convert numeric index density to string
-          indexDensity: indexDensities[indexDensity],
-          targetAudience: targetAudience,
-          specialInstructions: specialInstructions,
+          indexDensity: indexDensities[parseInt(config.indexDensity)],
+          targetAudience: config.targetAudience,
+          specialInstructions: config.specialInstructions,
         }),
         signal: controller.signal,
       })
@@ -193,11 +198,11 @@ export default function IndexGenerator() {
       // Estimate page ranges for this chunk
       const startPage = Math.max(
         1,
-        Math.floor((startChar / text.length) * documentPageCount),
+        Math.floor((startChar / text.length) * config.documentPageCount),
       )
       const endPage = Math.min(
-        documentPageCount,
-        Math.ceil((endChar / text.length) * documentPageCount),
+        config.documentPageCount,
+        Math.ceil((endChar / text.length) * config.documentPageCount),
       )
 
       console.log(`🔍 Processing chunk ${i + 1}/${totalChunks}:`)
@@ -225,26 +230,16 @@ export default function IndexGenerator() {
             chunk: chunkText,
             chunkIndex: i,
             totalChunks: totalChunks,
-            totalPages: documentPageCount,
+            totalPages: config.documentPageCount,
             pageRange: { start: startPage, end: endPage },
             previousEntries: allChunkEntries, // Pass previous entries for context
-            exampleIndex: showExampleInput ? exampleIndex : '',
+            exampleIndex: config.exampleIndex,
             isSecondPass: false,
             documentSummary: documentSummary,
-            audienceLevel:
-              audienceLevel === 0
-                ? 'high_school'
-                : audienceLevel === 1
-                  ? 'undergraduate'
-                  : 'graduate',
-            indexDensity:
-              indexDensity === 0
-                ? 'broad'
-                : indexDensity === 1
-                  ? 'medium'
-                  : 'detailed',
-            targetAudience: targetAudience,
-            specialInstructions: specialInstructions,
+            audienceLevel: audienceLevels[parseInt(config.audienceLevel)],
+            indexDensity: indexDensities[parseInt(config.indexDensity)],
+            targetAudience: config.targetAudience,
+            specialInstructions: config.specialInstructions,
           }),
           signal: abortControllerRef.current?.signal,
         })
@@ -323,13 +318,20 @@ export default function IndexGenerator() {
     }
   }
 
+  // Start processing when we enter step 3 (generation)
+  useEffect(() => {
+    if (step === 2) {
+      processDocument()
+    }
+  }, [step])
+
   /**
    * Main function to process the document and generate index entries. This runs after the user
    * clicks the "Generate Index" button in the configuration step.
    */
   const processDocument = async () => {
     // This is impossible to reach due to UI constraints, but checking helps with TypeScript
-    if (!file || !documentPageCount || documentPageCount <= 0) {
+    if (!file || !config.documentPageCount || config.documentPageCount <= 0) {
       setProcessingStatus({
         ...processingStatus,
         status: 'error',
@@ -354,8 +356,6 @@ export default function IndexGenerator() {
         progress: 0,
       })
       setIndexEntries([])
-      // Move to the generating step
-      setCurrentStep(2)
 
       console.log('Extracting text from DOCX...')
 
@@ -387,11 +387,11 @@ export default function IndexGenerator() {
 
       // Determine processing approach using utility function
       const useSinglePass = determineProcessingStrategy(
-        documentPageCount,
+        config.documentPageCount,
         fullText.length,
       )
       console.log(
-        `📊 Document analysis: ${documentPageCount} pages, ${fullText.length} characters`,
+        `📊 Document analysis: ${config.documentPageCount} pages, ${fullText.length} characters`,
       )
       console.log(
         `🚀 Processing approach: ${useSinglePass ? 'SINGLE-PASS (full context)' : 'CHUNKING (traditional)'}`,
@@ -411,18 +411,11 @@ export default function IndexGenerator() {
         progress: 75,
       }))
 
-      // TODO design this better so we don't have to pass so many parameters
       const secondPassRes = await secondPass(
         rawEntries,
         documentSummary,
         abortControllerRef as React.RefObject<AbortController>,
-        documentPageCount,
-        audienceLevel,
-        indexDensity,
-        targetAudience,
-        specialInstructions,
-        showExampleInput,
-        exampleIndex,
+        config,
       )
 
       // Logic to handle the result of the second pass
@@ -515,10 +508,10 @@ export default function IndexGenerator() {
             { name: 'Configure', description: 'Set parameters' },
             { name: 'Generate', description: 'Create your index' },
           ]}
-          currentStep={currentStep}
+          currentStep={step}
         />
 
-        {currentStep === 0 && (
+        {step === 0 && (
           <UploadStep
             file={file}
             onFileChange={handleFileChange}
@@ -526,25 +519,14 @@ export default function IndexGenerator() {
           />
         )}
 
-        {currentStep === 1 && (
-          // TODO use a React form component library for better handling of state. All these state
-          // values should be on ConfigureStep and then when submitted the results be passed to this component.
+        {step === 1 && (
           <ConfigureStep
-            documentPageCount={documentPageCount}
-            setDocumentPageCount={setDocumentPageCount}
-            audienceLevel={audienceLevel}
-            setAudienceLevel={setAudienceLevel}
-            indexDensity={indexDensity}
-            setIndexDensity={setIndexDensity}
-            targetAudience={targetAudience}
-            setTargetAudience={setTargetAudience}
-            specialInstructions={specialInstructions}
-            setSpecialInstructions={setSpecialInstructions}
-            showExampleInput={showExampleInput}
-            setShowExampleInput={setShowExampleInput}
-            exampleIndex={exampleIndex}
-            setExampleIndex={setExampleIndex}
-            onSubmit={processDocument}
+            currentConfig={config}
+            onSubmit={(data) => {
+              setConfig(data)
+              // This triggers processDocument via a useEffect
+              setStep(2)
+            }}
           />
         )}
 
@@ -601,7 +583,7 @@ export default function IndexGenerator() {
             entries={indexEntries}
             processingStatus={processingStatus}
             onAdjustSettings={() => {
-              setCurrentStep(1)
+              setStep(1)
               setProcessingStatus({
                 currentChunk: 0,
                 totalChunks: 0,
