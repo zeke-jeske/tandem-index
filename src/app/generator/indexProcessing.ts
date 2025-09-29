@@ -1,5 +1,5 @@
 // src/utils/indexProcessing.ts
-import { formatPageRanges } from '../../src/utils/apiHandlers/indexingPrompts'
+import { formatPageRanges } from '../../utils/apiHandlers/indexingPrompts'
 import IndexEntry from '@/utils/indexEntry'
 
 /**

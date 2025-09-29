@@ -1,4 +1,4 @@
-import { IndexEntry } from 'app/generator/indexProcessing'
+import IndexEntry from '@/utils/indexEntry'
 import { audienceLevels } from './ConfigureStep'
 import { ProcessingStatus } from './IndexGenerator'
 
