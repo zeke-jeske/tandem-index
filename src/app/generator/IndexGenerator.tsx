@@ -7,7 +7,7 @@ import {
   calculateChunkParameters,
 } from './indexProcessing'
 import IndexEntry from '@/utils/indexEntry'
-import Steps from './Steps'
+import Steps from '@/components/Steps'
 import UploadStep from './UploadStep'
 import ConfigureStep, { audienceLevels, indexDensities } from './ConfigureStep'
 import SuccessPopup from './SuccessPopup'
@@ -510,7 +510,14 @@ export default function IndexGenerator() {
           </p>
         </div>
 
-        <Steps currentStep={currentStep} />
+        <Steps
+          steps={[
+            { name: 'Upload', description: 'Upload your document' },
+            { name: 'Configure', description: 'Set parameters' },
+            { name: 'Generate', description: 'Create your index' },
+          ]}
+          currentStep={currentStep}
+        />
 
         {currentStep === 0 && (
           <UploadStep

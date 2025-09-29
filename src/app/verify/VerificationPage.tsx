@@ -2,6 +2,7 @@
 'use client'
 import { useState } from 'react'
 import { parseDocumentSample, selectRandomPassages } from './documentParser'
+import Steps from '@/components/Steps'
 
 interface TextSegment {
   text: string
@@ -25,13 +26,7 @@ const VerificationPage = () => {
   const [documentPageCount, setDocumentPageCount] = useState<number>(0)
   const [showUploadSuccess, setShowUploadSuccess] = useState(false) // for upload success message
 
-  const steps = [
-    { name: 'Upload', description: 'Upload your document' },
-    { name: 'Verify', description: 'Verify page numbers' },
-    { name: 'Generate', description: 'Create your index' },
-  ]
-
-  const [currentStep, setCurrentStep] = useState(0)
+  const [currentStep, setCurrentStep] = useState<0 | 1 | 2>(0)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -172,57 +167,14 @@ const VerificationPage = () => {
           </p>
         </div>
 
-        <div className="mb-8 w-full">
-          {/* Step Indicators */}
-          <div className="flex justify-between max-w-xl mx-auto mb-2">
-            {steps.map((step, index) => (
-              <div
-                key={`indicator-${index}`}
-                className="w-1/3 flex items-center"
-              >
-                {index > 0 && (
-                  <div
-                    className={`h-0.5 grow ${index <= currentStep ? 'bg-mint' : 'bg-gray-200'}`}
-                  />
-                )}
-                <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${
-                    index < currentStep
-                      ? 'bg-mint'
-                      : index === currentStep
-                        ? 'border-2 border-mint bg-white'
-                        : 'border-2 border-gray-200 bg-white'
-                  }`}
-                >
-                  <span
-                    className={`${index < currentStep ? 'text-white' : index === currentStep ? 'text-mint' : 'text-gray-500'}`}
-                  >
-                    {index + 1}
-                  </span>
-                </div>
-                {index < steps.length - 1 && (
-                  <div
-                    className={`h-0.5 grow ${index < currentStep ? 'bg-mint' : 'bg-gray-200'}`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Step Texts - separate but with matching widths */}
-          <div className="flex justify-between max-w-3xl mx-auto mb-2">
-            {steps.map((step, index) => (
-              <div key={`text-${index}`} className="w-1/3 text-center">
-                <div
-                  className={`text-sm font-medium ${index <= currentStep ? 'text-mint' : 'text-gray-500'}`}
-                >
-                  {step.name}
-                </div>
-                <div className="text-xs text-gray-500">{step.description}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Steps
+          steps={[
+            { name: 'Upload', description: 'Upload your document' },
+            { name: 'Verify', description: 'Verify page numbers' },
+            { name: 'Generate', description: 'Create your index' },
+          ]}
+          currentStep={currentStep}
+        />
 
         {!passages.length ? (
           <div className="bg-white p-6 rounded-lg shadow-md">

@@ -1,22 +1,16 @@
 import classNames from 'classnames'
 
-// TODO: Use this also for verify page
-interface Step {
+export interface Step {
   name: string
   description: string
 }
 
-const steps: Step[] = [
-  { name: 'Upload', description: 'Upload your document' },
-  { name: 'Configure', description: 'Set parameters' },
-  { name: 'Generate', description: 'Create your index' },
-]
-
 interface StepsProps {
+  steps: Step[]
   currentStep: 0 | 1 | 2
 }
 
-export default function Steps({ currentStep }: StepsProps) {
+export default function Steps({ steps, currentStep }: StepsProps) {
   return (
     <div className="mb-8 w-full">
       {/* Step indicators and labels */}
