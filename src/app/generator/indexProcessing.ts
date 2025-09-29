@@ -1,6 +1,5 @@
 // src/utils/indexProcessing.ts
 import { formatPageRanges } from '../../utils/apiHandlers/indexingPrompts'
-import IndexEntry from '@/utils/indexEntry'
 
 /**
  * Extracts page numbers from a string and converts them to an array of numbers and strings

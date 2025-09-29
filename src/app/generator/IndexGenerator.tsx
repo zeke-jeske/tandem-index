@@ -6,7 +6,6 @@ import {
   determineProcessingStrategy,
   calculateChunkParameters,
 } from './indexProcessing'
-import IndexEntry from '@/utils/indexEntry'
 import Steps from '@/components/Steps'
 import UploadStep from './UploadStep'
 import ConfigureStep, { audienceLevels, indexDensities } from './ConfigureStep'

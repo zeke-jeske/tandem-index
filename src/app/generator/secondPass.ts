@@ -1,4 +1,3 @@
-import IndexEntry from '@/utils/indexEntry'
 import { audienceLevels } from './ConfigureStep'
 import { ProcessingStatus } from './IndexGenerator'
 
